@@ -21,7 +21,6 @@ const serviceAccount = {
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: process.env.FIREBASE_DATABASE_URL,
   });
   console.log("Firebase Admin initialized successfully.");
 } else {

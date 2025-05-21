@@ -1,7 +1,8 @@
 import express from "express";
 import dotenv from "dotenv";
-import { db } from "./src/config/database.js";
+import { firestore } from "./src/config/database.js";
 dotenv.config();
+import router from "./src/routes/userRoutes.js";
 
 const app = express();
 const PORT = process.env.APP_PORT || 3000;
@@ -9,7 +10,7 @@ const PORT = process.env.APP_PORT || 3000;
 app.use(express.json());
 
 app.get("/db-status", (req, res) => {
-  if (db) {
+  if (firestore) {
     res.send(
       "Firebase Admin SDK has been initialized. Database object is available."
     );
@@ -22,9 +23,11 @@ app.get("/db-status", (req, res) => {
   }
 });
 
+app.use("/", router);
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
-  if (db) {
+  if (firestore) {
     console.log("Firebase connection seems to be configured.");
   } else {
     console.warn("Firebase connection might not be configured properly.");

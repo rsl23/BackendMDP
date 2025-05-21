@@ -11,8 +11,6 @@ if (!JWT_SECRET) {
   process.exit(1);
 }
 
-const admin = require("firebase-admin");
-
 // export const signup = async (req, res) => {
 //   const { username, email, password, address, phone_number, role } = req.body;
 
