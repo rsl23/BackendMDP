@@ -8,6 +8,7 @@ const app = express();
 const PORT = process.env.APP_PORT || 3000;
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.get("/db-status", (req, res) => {
   if (firestore) {

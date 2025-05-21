@@ -36,6 +36,25 @@ class User {
     }
     const newUser = new User(userData);
     try {
+      const snapshot = await User.usersRef.get();
+      const count = snapshot.size + 1;
+      newUser.id = `US${String(count).padStart(3, "0")}`;
+    } catch (error) {
+      console.error("Error generating new user ID:", error);
+      throw error;
+    }
+    try {
+      console.log("Creating user with data:", {
+        id: newUser.id,
+        email: newUser.email,
+        username: newUser.username,
+        address: newUser.address,
+        phone_number: newUser.phone_number,
+        role: newUser.role,
+        created_at: newUser.created_at,
+        deleted_at: newUser.deleted_at,
+      });
+
       await User.usersRef.doc(newUser.id).set({
         email: newUser.email,
         password: newUser.password,
@@ -47,9 +66,14 @@ class User {
         updated_at: new Date().toISOString(),
         deleted_at: newUser.deleted_at,
       });
+
+      console.log(
+        "User successfully created in Firestore with ID:",
+        newUser.id
+      );
       return newUser;
     } catch (error) {
-      console.error("Error creating user:", error);
+      console.error("Error creating user in Firestore:", error);
       throw error;
     }
   }
