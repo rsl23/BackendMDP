@@ -1,4 +1,4 @@
-import { db } from "../config/database.js";
+import { firestore } from "../config/database.js";
 import { v4 as uuidv4 } from "uuid";
 
 class User {
@@ -27,7 +27,7 @@ class User {
   }
 
   static get usersRef() {
-    return db.ref("users");
+    return firestore.collection("users");
   }
 
   static async create(userData) {
@@ -36,16 +36,15 @@ class User {
     }
     const newUser = new User(userData);
     try {
-      await User.usersRef.child(newUser.id).set({
+      await User.usersRef.doc(newUser.id).set({
         email: newUser.email,
-        password: hashedPassword,
+        password: newUser.password,
         username: newUser.username,
         address: newUser.address,
         phone_number: newUser.phone_number,
         role: newUser.role,
-        // access_token is typically managed by auth, not directly set on creation this way
         created_at: newUser.created_at,
-        updated_at: newUser.updated_at,
+        updated_at: new Date().toISOString(),
         deleted_at: newUser.deleted_at,
       });
       return newUser;
@@ -57,13 +56,13 @@ class User {
 
   static async findById(userId) {
     try {
-      const snapshot = await User.usersRef.child(userId).once("value");
-      if (snapshot.exists()) {
-        const userData = snapshot.val();
+      const doc = await User.usersRef.doc(userId).get();
+      if (doc.exists) {
+        const userData = doc.data();
         if (userData.deleted_at) {
-          return null; // Or handle soft-deleted users differently
+          return null; // Handle soft-deleted users
         }
-        return new User({ id: userId, ...userData });
+        return new User({ id: doc.id, ...userData });
       }
       return null;
     } catch (error) {
@@ -75,21 +74,14 @@ class User {
   static async findByEmail(email) {
     try {
       const snapshot = await User.usersRef
-        .orderByChild("email")
-        .equalTo(email)
-        .once("value");
-      if (snapshot.exists()) {
-        const usersData = snapshot.val();
-        // orderByChild can return multiple matches if email is not unique (though it should be)
-        // We'll take the first one that isn't soft-deleted.
-        for (const userId in usersData) {
-          if (
-            usersData.hasOwnProperty(userId) &&
-            !usersData[userId].deleted_at
-          ) {
-            return new User({ id: userId, ...usersData[userId] });
-          }
-        }
+        .where("email", "==", email)
+        .where("deleted_at", "==", null)
+        .limit(1)
+        .get();
+
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        return new User({ id: doc.id, ...doc.data() });
       }
       return null;
     } catch (error) {
@@ -103,14 +95,14 @@ class User {
       ...updateData,
       updated_at: new Date().toISOString(),
     };
-    // Prevent changing immutable fields or sensitive fields directly without proper checks
+    // Prevent changing immutable fields or sensitive fields
     delete dataToUpdate.id;
     delete dataToUpdate.created_at;
-    delete dataToUpdate.email; // Email usually shouldn't be changed this way
-    delete dataToUpdate.role; // Role changes should be privileged
+    delete dataToUpdate.email;
+    delete dataToUpdate.role;
 
     try {
-      await User.usersRef.child(userId).update(dataToUpdate);
+      await User.usersRef.doc(userId).update(dataToUpdate);
       return await User.findById(userId);
     } catch (error) {
       console.error("Error updating user:", error);
@@ -118,10 +110,9 @@ class User {
     }
   }
 
-  // For updating access token specifically
   static async updateAccessToken(userId, accessToken) {
     try {
-      await User.usersRef.child(userId).update({
+      await User.usersRef.doc(userId).update({
         access_token: accessToken,
         updated_at: new Date().toISOString(),
       });
@@ -134,10 +125,10 @@ class User {
 
   static async softDelete(userId) {
     try {
-      await User.usersRef.child(userId).update({
+      await User.usersRef.doc(userId).update({
         deleted_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        access_token: null, // Invalidate token on delete
+        access_token: null,
       });
       return true;
     } catch (error) {

@@ -11,48 +11,66 @@ if (!JWT_SECRET) {
   process.exit(1);
 }
 
+const admin = require("firebase-admin");
+
+// export const signup = async (req, res) => {
+//   const { username, email, password, address, phone_number, role } = req.body;
+
+//   if (!username || !email || !password) {
+//     return res
+//       .status(400)
+//       .json({ message: "Username, email, and password are required." });
+//   }
+
+//   try {
+//     const existingUser = await User.findByEmail(email);
+//     if (existingUser) {
+//       return res
+//         .status(400)
+//         .json({ message: "User already exists with this email." });
+//     }
+
+//     const salt = await bcrypt.genSalt(10);
+//     const hashedPassword = await bcrypt.hash(password, salt);
+
+//     const newUser = await User.create({
+//       username,
+//       email,
+//       password: hashedPassword, // Pass the hashed password to the model
+//       address,
+//       phone_number,
+//       role, // Role will default to 'user' if not provided, as per model
+//     });
+
+//     // Generate a token
+//     const tokenPayload = { id: newUser.id, role: newUser.role };
+//     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: "1h" });
+
+//     // Optionally, save the token to the user model if you store session tokens there
+//     await User.updateAccessToken(newUser.id, token);
+//     const userResponse = newUser.toJSON(); // Use toJSON to exclude password
+
+//     res.status(201).json({
+//       message: "User created successfully",
+//       token,
+//       user: userResponse,
+//     });
+//   } catch (error) {
+//     console.error("Signup error:", error);
+//     res
+//       .status(500)
+//       .json({ message: "Server error during signup.", error: error.message });
+//   }
+// };
+
 export const signup = async (req, res) => {
-  const { username, email, password, address, phone_number, role } = req.body;
-
-  if (!username || !email || !password) {
-    return res
-      .status(400)
-      .json({ message: "Username, email, and password are required." });
-  }
-
   try {
-    const existingUser = await User.findByEmail(email);
-    if (existingUser) {
-      return res
-        .status(400)
-        .json({ message: "User already exists with this email." });
+    const user = User.create(req.body);
+    if (!user) {
+      return res.status(400).json({ message: "User creation failed." });
+    } else {
+      return res.status(200).json({ message: "User Berhasil Signup" });
     }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const newUser = await User.create({
-      username,
-      email,
-      password: hashedPassword, // Pass the hashed password to the model
-      address,
-      phone_number,
-      role, // Role will default to 'user' if not provided, as per model
-    });
-
-    // Generate a token
-    const tokenPayload = { id: newUser.id, role: newUser.role };
-    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: "1h" });
-
-    // Optionally, save the token to the user model if you store session tokens there
-    await User.updateAccessToken(newUser.id, token);
-    const userResponse = newUser.toJSON(); // Use toJSON to exclude password
-
-    res.status(201).json({
-      message: "User created successfully",
-      token,
-      user: userResponse,
-    });
   } catch (error) {
     console.error("Signup error:", error);
     res
@@ -77,7 +95,7 @@ export const login = async (req, res) => {
         .status(400)
         .json({ message: "Invalid credentials. User not found." });
     }
-   
+
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
@@ -117,11 +135,9 @@ export const logout = async (req, res) => {
   if (userId) {
     try {
       await User.updateAccessToken(userId, null); // Clear the access token in the database
-      res
-        .status(200)
-        .json({
-          message: "Logged out successfully. Token invalidated server-side.",
-        });
+      res.status(200).json({
+        message: "Logged out successfully. Token invalidated server-side.",
+      });
     } catch (error) {
       console.error("Logout error:", error);
       res
