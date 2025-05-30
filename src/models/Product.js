@@ -33,11 +33,11 @@ class Product {
     }
     const newProduct = new Product(product);
     try {
-      const snapshot = await Product.productsRef.get();
-      const count = snapshot.size + 1;
-      newProduct.product_id = `PD${String(count).padStart(3, "0")}`;
-      // const newRef = Product.productsRef.doc();
-      // newProduct.product_id = newRef.id;
+      // const snapshot = await Product.productsRef.get();
+      // const count = snapshot.size + 1;
+      // newProduct.product_id = `PD${String(count).padStart(3, "0")}`;
+      const newRef = Product.productsRef.doc();
+      newProduct.product_id = newRef.id;
     } catch (error) {
       console.error("Error generating new product ID:", error);
       throw error;
@@ -59,7 +59,7 @@ class Product {
         price: newProduct.price,
         description: newProduct.description,
         image: newProduct.image,
-        user: newProduct.user.id,
+        user_id: newProduct.user_id,
         created_at: newProduct.created_at,
         deleted_at: newProduct.deleted_at,
       });
