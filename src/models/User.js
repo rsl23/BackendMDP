@@ -84,7 +84,7 @@ class User {
       if (doc.exists) {
         const userData = doc.data();
         if (userData.deleted_at) {
-          return null; // Handle soft-deleted users
+          return null;
         }
         return new User({ id: doc.id, ...userData });
       }
