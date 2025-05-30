@@ -2,7 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import { firestore } from "./src/config/database.js";
 dotenv.config();
-import router from "./src/routes/userRoutes.js";
+import router from "./src/routes/Routes.js";
 
 const app = express();
 const PORT = process.env.APP_PORT || 3000;

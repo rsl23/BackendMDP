@@ -28,7 +28,6 @@ if (!admin.apps.length) {
   console.log("Firebase Admin already initialized.");
 }
 
-// const db = admin.database(); // For Realtime Database
 const firestore = admin.firestore(); // For Firestore
 
 export { firestore };

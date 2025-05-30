@@ -44,16 +44,16 @@ class User {
       throw error;
     }
     try {
-      console.log("Creating user with data:", {
-        id: newUser.id,
-        email: newUser.email,
-        username: newUser.username,
-        address: newUser.address,
-        phone_number: newUser.phone_number,
-        role: newUser.role,
-        created_at: newUser.created_at,
-        deleted_at: newUser.deleted_at,
-      });
+      // console.log("Creating user with data:", {
+      //   id: newUser.id,
+      //   email: newUser.email,
+      //   username: newUser.username,
+      //   address: newUser.address,
+      //   phone_number: newUser.phone_number,
+      //   role: newUser.role,
+      //   created_at: newUser.created_at,
+      //   deleted_at: newUser.deleted_at,
+      // });
 
       await User.usersRef.doc(newUser.id).set({
         email: newUser.email,
