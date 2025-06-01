@@ -16,7 +16,7 @@ router.post("/logout", logout);
 
 router.post("/add-product", addProduct);
 router.get("/product/:product_id", findProductById);
-router.get("/product/name/:name", findProductByName);
+router.get("/product/search/:name", findProductByName);
 
 router.post("/create-transaction", createTransaction);
 

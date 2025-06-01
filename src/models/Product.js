@@ -4,21 +4,21 @@ import { v4 as uuidv4 } from "uuid";
 
 class Product {
   constructor({
-    product_id,
     name,
     price,
     description,
+    category = "",
     image = "",
     user_id = null,
     created_at,
     deleted_at = null,
   }) {
-    this.product_id = product_id || uuidv4();
     this.name = name;
     this.price = price;
     this.description = description;
+    this.category = category;
     this.image = image;
-    this.user_id = user_id;
+    this.user_id = userId;
     this.created_at = created_at || new Date().toISOString();
     this.deleted_at = deleted_at;
   }
@@ -48,16 +48,17 @@ class Product {
         name: newProduct.name,
         price: newProduct.price,
         description: newProduct.description,
+        category: newProduct.category,
         image: newProduct.image,
         user_id: newProduct.user_id,
         created_at: newProduct.created_at,
         deleted_at: newProduct.deleted_at,
       });
-
       await Product.productsRef.doc(newProduct.product_id).set({
         name: newProduct.name,
         price: newProduct.price,
         description: newProduct.description,
+        category: newProduct.category,
         image: newProduct.image,
         user: newProduct.user.id,
         created_at: newProduct.created_at,
