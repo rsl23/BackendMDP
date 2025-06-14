@@ -69,6 +69,7 @@ GET    /products                 - Get all products with pagination
 POST   /add-product              - Add new product
 GET    /product/:product_id      - Get product by ID
 PUT    /product/:product_id      - Update product by ID
+DELETE /product/:product_id      - Delete product by ID (soft delete)
 GET    /product/search/:name     - Search products by name
 ```
 

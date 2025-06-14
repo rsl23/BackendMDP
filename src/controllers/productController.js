@@ -111,3 +111,47 @@ export const updateProduct = async (req, res) => {
     });
   }
 };
+
+export const deleteProduct = async (req, res) => {
+  const { product_id } = req.params;
+
+  if (!product_id) {
+    return res.status(400).json({
+      status: 400,
+      message: "Product ID is required.",
+    });
+  }
+
+  try {
+    // Check if product exists and not already deleted
+    const existingProduct = await Product.findProductById(product_id);
+    if (!existingProduct) {
+      return res.status(404).json({
+        status: 404,
+        message: "Product not found.",
+      });
+    }
+
+    // Soft delete product
+    const deleteResult = await Product.softDelete(product_id);
+
+    if (!deleteResult) {
+      return res.status(500).json({
+        status: 500,
+        message: "Failed to delete product.",
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      message: "Product deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Server error while deleting product.",
+      error: error.message,
+    });
+  }
+};

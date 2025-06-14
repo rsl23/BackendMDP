@@ -17,6 +17,7 @@ import {
   addProduct,
   getAllProducts,
   updateProduct,
+  deleteProduct,
   findProductById,
   findProductByName,
 } from "../controllers/productController.js";
@@ -45,6 +46,7 @@ router.get("/products", getAllProducts);                           // Route untu
 router.post("/add-product", addProduct);
 router.get("/product/:product_id", findProductById);
 router.put("/product/:product_id", updateProduct);                 // Route untuk update product
+router.delete("/product/:product_id", deleteProduct);              // Route untuk delete product (soft delete)
 router.get("/product/search/:name", findProductByName);
 
 // =================== Transaction routes ===================
