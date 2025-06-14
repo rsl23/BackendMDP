@@ -16,6 +16,7 @@ import {
 import {
   addProduct,
   getAllProducts,
+  updateProduct,
   findProductById,
   findProductByName,
 } from "../controllers/productController.js";
@@ -43,6 +44,7 @@ router.get("/search-users", authenticateToken, searchUsers);                // R
 router.get("/products", getAllProducts);                           // Route untuk get all products
 router.post("/add-product", addProduct);
 router.get("/product/:product_id", findProductById);
+router.put("/product/:product_id", updateProduct);                 // Route untuk update product
 router.get("/product/search/:name", findProductByName);
 
 // =================== Transaction routes ===================

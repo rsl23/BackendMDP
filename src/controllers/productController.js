@@ -66,3 +66,48 @@ export const getAllProducts = async (req, res) => {
     });
   }
 };
+
+export const updateProduct = async (req, res) => {
+  const { product_id } = req.params;
+
+  if (!product_id) {
+    return res.status(400).json({
+      status: 400,
+      message: "Product ID is required.",
+    });
+  }
+
+  try {
+    // Check if product exists
+    const existingProduct = await Product.findProductById(product_id);
+    if (!existingProduct) {
+      return res.status(404).json({
+        status: 404,
+        message: "Product not found.",
+      });
+    }
+
+    // Update product
+    const updatedProduct = await Product.update(product_id, req.body);
+
+    if (!updatedProduct) {
+      return res.status(404).json({
+        status: 404,
+        message: "Failed to update product.",
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      message: "Product updated successfully",
+      product: updatedProduct,
+    });
+  } catch (error) {
+    console.error("Error updating product:", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Server error while updating product.",
+      error: error.message,
+    });
+  }
+};

@@ -77,7 +77,6 @@ class Product {  constructor({
       throw error;
     }
   }
-
   static async findProductById(product_id) {
     try {
       const doc = await Product.productsRef.doc(product_id).get();
@@ -86,15 +85,14 @@ class Product {  constructor({
         if (productData.deleted_at) {
           return null;
         }
-        return new Product({ id: doc.product_id, ...productData });
+        return new Product({ product_id: doc.id, ...productData });
       }
       return null;
     } catch (error) {
-      console.error("Error finding user by ID:", error);
+      console.error("Error finding product by ID:", error);
       throw error;
     }
   }
-
   static async findProductByName(name) {
     try {
       const snapshot = await firestore
@@ -108,7 +106,7 @@ class Product {  constructor({
         const data = doc.data();
         if (data.name.toLowerCase().includes(name.toLowerCase())) {
           matchedProducts.push(
-            new Product({ product_id: doc.product_id, ...data })
+            new Product({ product_id: doc.id, ...data })
           );
         }
       });
@@ -119,7 +117,6 @@ class Product {  constructor({
       throw error;
     }
   }
-
   static async update(productId, updateData) {
     const dataToUpdate = {
       ...updateData,
@@ -131,7 +128,7 @@ class Product {  constructor({
 
     try {
       await Product.productsRef.doc(productId).update(dataToUpdate);
-      return await Product.findById(productId);
+      return await Product.findProductById(productId);
     } catch (error) {
       console.error("Error updating product:", error);
       throw error;

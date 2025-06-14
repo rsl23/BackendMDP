@@ -63,6 +63,20 @@ GET    /user/:userId             - Get user profile by ID (requires auth)
 GET    /search-users             - Search users by username (requires auth)
 ```
 
+### Product Management Routes
+```
+GET    /products                 - Get all products with pagination
+POST   /add-product              - Add new product
+GET    /product/:product_id      - Get product by ID
+PUT    /product/:product_id      - Update product by ID
+GET    /product/search/:name     - Search products by name
+```
+
+### Transaction Routes
+```
+POST   /create-transaction       - Create new transaction
+```
+
 ### Utility Routes
 ```
 GET    /db-status                - Check database connection status
@@ -303,9 +317,7 @@ interface ApiService {
 4. Push ke branch
 5. Create Pull Request
 
-## 📝 License
 
-This project is licensed under the ISC License.
 
 ## 📞 Support
 
