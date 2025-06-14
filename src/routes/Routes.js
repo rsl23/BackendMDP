@@ -5,6 +5,8 @@ import {
   login, 
   logout,
   getUserProfile,
+  updateUserProfile,
+  changePassword,
   requestPasswordReset,
   resetPassword,
   getUserById,           
@@ -28,6 +30,8 @@ router.post("/signup", signup);
 router.post("/login", login);
 router.post("/logout", authenticateToken, logout);
 router.get("/me-profile", authenticateToken, getUserProfile);
+router.put("/me-profile", authenticateToken, updateUserProfile);         // Route untuk update profile pribadi
+router.post("/change-password", authenticateToken, changePassword);      // Route untuk change password
 router.post("/request-password-reset", requestPasswordReset);
 router.post("/reset-password", resetPassword);
 router.get("/user/:userId", authenticateToken, getUserById);                 // Route untuk get profile user lain

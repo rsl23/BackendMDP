@@ -9,7 +9,8 @@ import {
   resetPasswordSchema, 
   requestPasswordResetSchema,
   loginSchema,
-  changePasswordSchema 
+  changePasswordSchema,
+  updateProfileSchema 
 } from "../utils/validation/authSchema.js";
 
 dotenv.config();
@@ -390,6 +391,123 @@ export const searchUsers = async (req, res) => {
     console.error("Error searching users:", error);
     res.status(500).json({ 
       message: "Server error while searching users.", 
+      error: error.message 
+    });
+  }
+};
+
+// Endpoint untuk update profile pribadi user
+export const updateUserProfile = async (req, res) => {
+  const userId = req.user?.id; // Get user ID from authenticated request
+
+  if (!userId) {
+    return res.status(401).json({ message: "Unauthorized access." });
+  }
+
+  // Validate input using Joi
+  const { error, value } = updateProfileSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ 
+      message: "Validation error", 
+      errors: error.details.map(detail => ({
+        field: detail.path[0],
+        message: detail.message
+      }))
+    });
+  }
+
+  try {
+    // Check if user exists
+    const existingUser = await User.findById(userId);
+    if (!existingUser) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Update profile
+    const updatedUser = await User.updateProfile(userId, value);
+    
+    if (!updatedUser) {
+      return res.status(404).json({ message: "Failed to update profile." });
+    }
+
+    const userResponse = updatedUser.toJSON(); // Exclude sensitive information
+    
+    res.status(200).json({
+      message: "Profile updated successfully",
+      user: userResponse
+    });
+
+  } catch (error) {
+    console.error("Error updating user profile:", error);
+    
+    // Handle specific error cases
+    if (error.message === "Username already taken by another user.") {
+      return res.status(409).json({ 
+        message: "Username is already taken",
+        error: error.message 
+      });
+    }
+    
+    res.status(500).json({ 
+      message: "Server error while updating profile.", 
+      error: error.message 
+    });
+  }
+};
+
+// Endpoint untuk change password (berbeda dari reset password)
+export const changePassword = async (req, res) => {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ message: "Unauthorized access." });
+  }
+
+  // Validate input using Joi
+  const { error, value } = changePasswordSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ 
+      message: "Validation error", 
+      errors: error.details.map(detail => ({
+        field: detail.path[0],
+        message: detail.message
+      }))
+    });
+  }
+
+  const { currentPassword, newPassword } = value;
+
+  try {
+    // Get user data
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({ message: "Current password is incorrect." });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedNewPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update password
+    await User.updatePassword(userId, hashedNewPassword);
+
+    // Send confirmation email
+    await emailService.sendPasswordChangeConfirmation(user.email, user.username);
+
+    res.status(200).json({ 
+      message: "Password changed successfully." 
+    });
+
+  } catch (error) {
+    console.error("Error changing password:", error);
+    res.status(500).json({ 
+      message: "Server error while changing password.", 
       error: error.message 
     });
   }

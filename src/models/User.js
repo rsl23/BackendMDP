@@ -13,7 +13,6 @@ class User {
     access_token = null,
     reset_password_token = null, //
     reset_password_expires = null, // 
-    // PERUBAHAN 1: Menambahkan field untuk Google Login support
     google_uid = null,              // Google User ID untuk Google Login
     profile_picture = null,         // URL profile picture dari Google
     auth_provider = "local",        // Provider authentication: "local", "google", atau "both"
@@ -42,7 +41,7 @@ class User {
     return firestore.collection("users");
   }
   static async create(userData) {
-    // PERUBAHAN 3: Update validasi untuk support Google users
+    // Update validasi untuk support Google users
     if (!userData.email || !userData.username) {
       throw new Error("Email and username are required.");
     }
@@ -79,7 +78,7 @@ class User {
         address: newUser.address,
         phone_number: newUser.phone_number,
         role: newUser.role,
-        // PERUBAHAN 4: Menambahkan field Google Login ke database
+        // Menambahkan field Google Login ke database
         google_uid: newUser.google_uid,
         profile_picture: newUser.profile_picture,
         auth_provider: newUser.auth_provider,
@@ -352,6 +351,45 @@ class User {
       return Array.from(users.values());
     } catch (error) {
       console.error("Error searching users:", error);
+      throw error;
+    }
+  }
+
+  // Method untuk update profile user
+  static async updateProfile(userId, updateData) {
+    const allowedFields = ['username', 'address', 'phone_number'];
+    const dataToUpdate = {};
+    
+    // Filter hanya field yang diizinkan untuk diupdate
+    Object.keys(updateData).forEach(key => {
+      if (allowedFields.includes(key) && updateData[key] !== undefined) {
+        dataToUpdate[key] = updateData[key];
+      }
+    });
+
+    // Tambahkan timestamp update
+    dataToUpdate.updated_at = new Date().toISOString();
+
+    try {
+      // Cek apakah username sudah digunakan oleh user lain
+      if (dataToUpdate.username) {
+        const snapshot = await User.usersRef
+          .where("username", "==", dataToUpdate.username)
+          .where("deleted_at", "==", null)
+          .get();
+
+        if (!snapshot.empty) {
+          const existingUser = snapshot.docs[0];
+          if (existingUser.id !== userId) {
+            throw new Error("Username already taken by another user.");
+          }
+        }
+      }
+
+      await User.usersRef.doc(userId).update(dataToUpdate);
+      return await User.findById(userId);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
       throw error;
     }
   }
