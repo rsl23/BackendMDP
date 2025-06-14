@@ -6,9 +6,11 @@ import {
   logout,
   getUserProfile,
   requestPasswordReset,
-  resetPassword
+  resetPassword,
+  getUserById,           
+  // getUsers,              
+  searchUsers            
 } from "../controllers/userController.js";
-
 import {
   addProduct,
   findProductById,
@@ -28,6 +30,9 @@ router.post("/logout", authenticateToken, logout);
 router.get("/me-profile", authenticateToken, getUserProfile);
 router.post("/request-password-reset", requestPasswordReset);
 router.post("/reset-password", resetPassword);
+router.get("/user/:userId", authenticateToken, getUserById);                 // Route untuk get profile user lain
+// router.get("/users", authenticateToken, getUsers);                          // Route untuk get all users (admin only)
+router.get("/search-users", authenticateToken, searchUsers);                // Route untuk search users
 
 // =================== Product routes ===================
 router.post("/add-product", addProduct);

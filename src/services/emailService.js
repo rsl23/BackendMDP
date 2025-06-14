@@ -6,17 +6,39 @@ dotenv.config();
 class EmailService {
   constructor() {
     // Konfigurasi SMTP transporter
-    this.transporter = nodemailer.createTransporter({
-      service: 'gmail', // atau SMTP provider lain
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      }
-    });
+    try {
+      this.transporter = nodemailer.createTransport({
+        service: 'gmail', // atau SMTP provider lain
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        }
+      });
+    } catch (error) {
+      console.error('Error creating email transporter:', error);
+      this.transporter = null;
+    }
   }
 
+  // Fungsi: Verifikasi konfigurasi email
+  async verifyConnection() {
+    if (!this.transporter) {
+      return { success: false, error: 'Email transporter not initialized' };
+    }
+
+    try {
+      await this.transporter.verify();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
   // Fungsi: Mengirim email reset password ke user
   async sendResetPasswordEmail(email, username, resetToken) {
+    if (!this.transporter) {
+      return { success: false, error: 'Email service not configured' };
+    }
+
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
     
     const mailOptions = {
@@ -37,12 +59,16 @@ class EmailService {
       await this.transporter.sendMail(mailOptions);
       return { success: true };
     } catch (error) {
+      console.error('Error sending reset password email:', error);
       return { success: false, error: error.message };
     }
   }
-
   // Fungsi: Mengirim konfirmasi setelah password berhasil direset
   async sendPasswordResetConfirmation(email, username) {
+    if (!this.transporter) {
+      return { success: false, error: 'Email service not configured' };
+    }
+
     const mailOptions = {
       from: process.env.SMTP_USER,
       to: email,
@@ -65,12 +91,16 @@ class EmailService {
       await this.transporter.sendMail(mailOptions);
       return { success: true };
     } catch (error) {
+      console.error('Error sending password reset confirmation:', error);
       return { success: false, error: error.message };
     }
   }
-
   // Fungsi: Mengirim konfirmasi setelah password berhasil diubah
   async sendPasswordChangeConfirmation(email, username) {
+    if (!this.transporter) {
+      return { success: false, error: 'Email service not configured' };
+    }
+
     const mailOptions = {
       from: process.env.SMTP_USER,
       to: email,
@@ -98,6 +128,7 @@ class EmailService {
       await this.transporter.sendMail(mailOptions);
       return { success: true };
     } catch (error) {
+      console.error('Error sending password change confirmation:', error);
       return { success: false, error: error.message };
     }
   }

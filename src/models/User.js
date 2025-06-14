@@ -11,8 +11,12 @@ class User {
     phone_number = "",
     role = "user",
     access_token = null,
-    reset_password_token = null,
-    reset_password_expires = null,
+    reset_password_token = null, //
+    reset_password_expires = null, // 
+    // PERUBAHAN 1: Menambahkan field untuk Google Login support
+    google_uid = null,              // Google User ID untuk Google Login
+    profile_picture = null,         // URL profile picture dari Google
+    auth_provider = "local",        // Provider authentication: "local", "google", atau "both"
     created_at,
     deleted_at = null,
   }) {
@@ -24,8 +28,12 @@ class User {
     this.phone_number = phone_number;
     this.role = role;
     this.access_token = access_token;
-    this.reset_password_token = reset_password_token;
-    this.reset_password_expires = reset_password_expires;
+    this.reset_password_token = reset_password_token; //
+    this.reset_password_expires = reset_password_expires; //
+    // PERUBAHAN 2: Assign field baru untuk Google Login
+    this.google_uid = google_uid;
+    this.profile_picture = profile_picture;
+    this.auth_provider = auth_provider;
     this.created_at = created_at || new Date().toISOString();
     this.deleted_at = deleted_at;
   }
@@ -33,11 +41,17 @@ class User {
   static get usersRef() {
     return firestore.collection("users");
   }
-
   static async create(userData) {
-    if (!userData.email || !userData.password || !userData.username) {
-      throw new Error("Email, password, and username are required.");
+    // PERUBAHAN 3: Update validasi untuk support Google users
+    if (!userData.email || !userData.username) {
+      throw new Error("Email and username are required.");
     }
+    
+    // Password wajib untuk local users, optional untuk Google users
+    if (userData.auth_provider === "local" && !userData.password) {
+      throw new Error("Password is required for local users.");
+    }
+
     const newUser = new User(userData);
     try {
       const snapshot = await User.usersRef.get();
@@ -47,8 +61,7 @@ class User {
       console.error("Error generating new user ID:", error);
       throw error;
     }
-    try {
-      // console.log("Creating user with data:", {
+    try {      // console.log("Creating user with data:", {
       //   id: newUser.id,
       //   email: newUser.email,
       //   username: newUser.username,
@@ -58,7 +71,7 @@ class User {
       //   created_at: newUser.created_at,
       //   deleted_at: newUser.deleted_at,
       // });
-
+      
       await User.usersRef.doc(newUser.id).set({
         email: newUser.email,
         password: newUser.password,
@@ -66,6 +79,10 @@ class User {
         address: newUser.address,
         phone_number: newUser.phone_number,
         role: newUser.role,
+        // PERUBAHAN 4: Menambahkan field Google Login ke database
+        google_uid: newUser.google_uid,
+        profile_picture: newUser.profile_picture,
+        auth_provider: newUser.auth_provider,
         created_at: newUser.created_at,
         updated_at: new Date().toISOString(),
         deleted_at: newUser.deleted_at,
@@ -224,9 +241,142 @@ class User {
     }
   }
 
+  // Method baru untuk mencari user berdasarkan Google UID
+  static async findByGoogleUid(googleUid) {
+    try {
+      const snapshot = await User.usersRef
+        .where("google_uid", "==", googleUid)
+        .where("deleted_at", "==", null)
+        .limit(1)
+        .get();
+
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        return new User({ id: doc.id, ...doc.data() });
+      }
+      return null;
+    } catch (error) {
+      console.error("Error finding user by Google UID:", error);
+      throw error;
+    }
+  }
+
+  //Method untuk mengambil semua users dengan pagination
+  // static async getAllUsers(page = 1, limit = 10, search = '') {
+  //   try {
+  //     const offset = (page - 1) * limit;
+      
+  //     // Base query untuk mencari user yang tidak di-delete
+  //     let query = User.usersRef
+  //       .where("deleted_at", "==", null)
+  //       .orderBy("created_at", "desc");
+
+  //     // Jika ada search term, filter berdasarkan username (basic implementation)
+  //     if (search) {
+  //       query = query
+  //         .where("username", ">=", search)
+  //         .where("username", "<=", search + '\uf8ff');
+  //     }
+
+  //     // Execute query dengan pagination
+  //     const snapshot = await query
+  //       .limit(limit)
+  //       .offset(offset)
+  //       .get();
+
+  //     const users = [];
+  //     snapshot.forEach(doc => {
+  //       const userData = doc.data();
+  //       // Return public profile data saja
+  //       users.push({
+  //         id: doc.id,
+  //         username: userData.username,
+  //         email: userData.email,
+  //         profile_picture: userData.profile_picture,
+  //         role: userData.role,
+  //         auth_provider: userData.auth_provider,
+  //         created_at: userData.created_at
+  //       });
+  //     });
+
+  //     // Get total count untuk pagination info
+  //     const totalSnapshot = await User.usersRef
+  //       .where("deleted_at", "==", null)
+  //       .get();
+  //     const totalUsers = totalSnapshot.size;
+
+  //     return {
+  //       users,
+  //       pagination: {
+  //         currentPage: page,
+  //         totalPages: Math.ceil(totalUsers / limit),
+  //         totalUsers,
+  //         hasNext: page * limit < totalUsers,
+  //         hasPrev: page > 1
+  //       }
+  //     };
+  //   } catch (error) {
+  //     console.error("Error getting all users:", error);
+  //     throw error;
+  //   }
+  // }
+
+  // Method untuk search users berdasarkan username atau email
+  static async searchUsers(searchTerm, limit = 10) {
+    try {
+      const searchLower = searchTerm.toLowerCase();
+      
+      // Search by username (case-insensitive)
+      const usernameSnapshot = await User.usersRef
+        .where("deleted_at", "==", null)
+        .orderBy("username")
+        .startAt(searchLower)
+        .endAt(searchLower + '\uf8ff')
+        .limit(limit)
+        .get();
+
+      const users = new Map(); // Use Map to avoid duplicates
+
+      // Process username search results
+      usernameSnapshot.forEach(doc => {
+        const userData = doc.data();
+        users.set(doc.id, {
+          id: doc.id,
+          username: userData.username,
+          email: userData.email,
+          profile_picture: userData.profile_picture,
+          created_at: userData.created_at
+        });
+      });
+
+      return Array.from(users.values());
+    } catch (error) {
+      console.error("Error searching users:", error);
+      throw error;
+    }
+  }
+
   toJSON() {
-    const { password, ...userData } = this;
+    const { 
+      password, 
+      access_token, 
+      reset_password_token, 
+      reset_password_expires, 
+      ...userData 
+    } = this;
     return userData;
+  }
+
+  // untuk membuat public profile (untuk user lain)
+  toPublicProfile() {
+    return {
+      id: this.id,
+      username: this.username,
+      email: this.email, // Bisa di-comment jika mau hide email
+      profile_picture: this.profile_picture,
+      created_at: this.created_at
+      // Exclude: password, tokens, address, phone_number, role
+    };
   }
 }
 

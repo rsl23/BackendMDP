@@ -284,3 +284,114 @@ export const resetPassword = async (req, res) => {
   }
 };
 
+// Endpoint baru untuk mengambil profile user lain berdasarkan ID
+export const getUserById = async (req, res) => {
+  const { userId } = req.params;
+  const requesterId = req.user?.id; // User yang melakukan request
+
+  if (!userId) {
+    return res.status(400).json({ message: "User ID is required." });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Check if user is deleted/soft deleted
+    if (user.deleted_at) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Create public profile (exclude sensitive information)
+    const publicProfile = {
+      id: user.id,
+      username: user.username,
+      email: user.email, // Bisa di-hide jika mau lebih private
+      profile_picture: user.profile_picture,
+      auth_provider: user.auth_provider,
+      created_at: user.created_at,
+      // Exclude sensitive data: password, access_token, reset_password_token, dll
+    };
+
+    // Optional: Add extra info if viewing own profile
+    if (requesterId === userId) {
+      publicProfile.phone_number = user.phone_number;
+      publicProfile.address = user.address;
+      publicProfile.role = user.role;
+    }
+
+    res.status(200).json({ 
+      user: publicProfile,
+      isOwnProfile: requesterId === userId
+    });
+
+  } catch (error) {
+    console.error("Error fetching user by ID:", error);
+    res.status(500).json({ 
+      message: "Server error while fetching user profile.", 
+      error: error.message 
+    });
+  }
+};
+
+// Endpoint untuk mengambil daftar semua users (Admin only)
+// export const getUsers = async (req, res) => {
+//   const requesterId = req.user?.id;
+//   const requesterRole = req.user?.role;
+  
+//   // Hanya admin yang bisa akses endpoint ini
+//   if (requesterRole !== 'admin') {
+//     return res.status(403).json({ message: "Access denied. Admin only." });
+//   }
+
+//   try {
+//     const { page = 1, limit = 10, search = '' } = req.query;
+//     const pageNum = parseInt(page);
+//     const limitNum = parseInt(limit);
+//     const offset = (pageNum - 1) * limitNum;
+
+//     // Get users from database menggunakan method yang sudah dibuat
+//     const result = await User.getAllUsers(pageNum, limitNum, search);
+
+//     res.status(200).json(result);
+
+//   } catch (error) {
+//     console.error("Error fetching users:", error);
+//     res.status(500).json({ 
+//       message: "Server error while fetching users.", 
+//       error: error.message 
+//     });
+//   }
+// };
+
+// Endpoint untuk search users berdasarkan username atau email
+export const searchUsers = async (req, res) => {
+  const requesterId = req.user?.id;
+  const { query } = req.query;
+
+  if (!query || query.trim().length < 2) {
+    return res.status(400).json({ 
+      message: "Search query must be at least 2 characters long." 
+    });
+  }
+
+  try {
+    const searchResults = await User.searchUsers(query.trim(), 10);
+
+    res.status(200).json({
+      users: searchResults,
+      query: query,
+      count: searchResults.length
+    });
+
+  } catch (error) {
+    console.error("Error searching users:", error);
+    res.status(500).json({ 
+      message: "Server error while searching users.", 
+      error: error.message 
+    });
+  }
+};
+
