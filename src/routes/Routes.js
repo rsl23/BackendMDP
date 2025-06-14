@@ -15,6 +15,7 @@ import {
 } from "../controllers/userController.js";
 import {
   addProduct,
+  getAllProducts,
   findProductById,
   findProductByName,
 } from "../controllers/productController.js";
@@ -39,6 +40,7 @@ router.get("/user/:userId", authenticateToken, getUserById);                 // 
 router.get("/search-users", authenticateToken, searchUsers);                // Route untuk search users
 
 // =================== Product routes ===================
+router.get("/products", getAllProducts);                           // Route untuk get all products
 router.post("/add-product", addProduct);
 router.get("/product/:product_id", findProductById);
 router.get("/product/search/:name", findProductByName);

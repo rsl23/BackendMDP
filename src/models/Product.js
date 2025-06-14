@@ -2,8 +2,7 @@ import { firestore } from "../config/database.js";
 import User from "./User.js";
 import { v4 as uuidv4 } from "uuid";
 
-class Product {
-  constructor({
+class Product {  constructor({
     name,
     price,
     description,
@@ -18,7 +17,7 @@ class Product {
     this.description = description;
     this.category = category;
     this.image = image;
-    this.user_id = userId;
+    this.user_id = user_id;
     this.created_at = created_at || new Date().toISOString();
     this.deleted_at = deleted_at;
   }
@@ -148,6 +147,50 @@ class Product {
       return true;
     } catch (error) {
       console.error("Error soft deleting product:", error);
+      throw error;
+    }
+  }
+  static async getAllProducts(page, limit) {
+    try {
+      // Simplified query to avoid composite index requirement
+      // Get all non-deleted products first, then handle pagination in memory
+      const snapshot = await Product.productsRef
+        .where("deleted_at", "==", null)
+        .get();
+
+      // Convert to array and sort by created_at descending
+      const allProducts = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        allProducts.push(new Product({ 
+          product_id: doc.id, 
+          ...data 
+        }));
+      });
+
+      // Sort by created_at descending (newest first)
+      allProducts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+      // Apply pagination in memory
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedProducts = allProducts.slice(startIndex, endIndex);
+
+      const totalProducts = allProducts.length;
+
+      return {
+        products: paginatedProducts,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(totalProducts / limit),
+          totalProducts,
+          hasNext: page * limit < totalProducts,
+          hasPrev: page > 1,
+          limit,
+        },
+      };
+    } catch (error) {
+      console.error("Error getting all products:", error);
       throw error;
     }
   }
