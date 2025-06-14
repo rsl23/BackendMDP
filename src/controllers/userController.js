@@ -1,7 +1,16 @@
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import emailService from "../services/emailService.js";
 import dotenv from "dotenv";
+import { 
+  signupSchema, 
+  resetPasswordSchema, 
+  requestPasswordResetSchema,
+  loginSchema,
+  changePasswordSchema 
+} from "../utils/validation/authSchema.js";
 
 dotenv.config();
 
@@ -12,13 +21,19 @@ if (!JWT_SECRET) {
 }
 
 export const signup = async (req, res) => {
-  const { username, email, password, address, phone_number, role } = req.body;
-
-  if (!username || !email || !password) {
-    return res
-      .status(400)
-      .json({ message: "Username, email, and password are required." });
+  // Validate input using Joi
+  const { error, value } = signupSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ 
+      message: "Validation error", 
+      errors: error.details.map(detail => ({
+        field: detail.path[0],
+        message: detail.message
+      }))
+    });
   }
+
+  const { username, email, password, address, phone_number, role } = value;
 
   try {
     const existingUser = await User.findByEmail(email);
@@ -62,13 +77,19 @@ export const signup = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res
-      .status(400)
-      .json({ message: "Email and password are required." });
+  // Validate input using Joi
+  const { error, value } = loginSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ 
+      message: "Validation error", 
+      errors: error.details.map(detail => ({
+        field: detail.path[0],
+        message: detail.message
+      }))
+    });
   }
+
+  const { email, password } = value;
 
   try {
     const user = await User.findByEmail(email);
@@ -132,3 +153,134 @@ export const logout = async (req, res) => {
       .json({ message: "Logged out successfully. Client should clear token." });
   }
 };
+
+export const getUserProfile = async (req, res) => {
+  const userId = req.user?.id; // Get user ID from authenticated request
+
+  if (!userId) {
+    return res.status(401).json({ message: "Unauthorized access." });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const userResponse = user.toJSON(); // Use toJSON to exclude password
+    res.status(200).json({ user: userResponse });
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    res
+      .status(500)
+      .json({ message: "Server error while fetching user profile.", error: error.message });
+  }
+};
+
+export const requestPasswordReset = async (req, res) => {
+  // Validate input using Joi
+  const { error, value } = requestPasswordResetSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ 
+      message: "Validation error", 
+      errors: error.details.map(detail => ({
+        field: detail.path[0],
+        message: detail.message
+      }))
+    });
+  }
+
+  const { email } = value;
+
+  try {
+    const user = await User.findByEmail(email);
+    if (!user) {
+      // Don't reveal whether user exists or not for security
+      return res.status(200).json({ 
+        message: "If an account with that email exists, we have sent a password reset link." 
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpires = new Date(Date.now() + 3600000).toISOString(); // 1 hour from now
+
+    // Save reset token to database
+    await User.setResetPasswordToken(user.id, resetToken, resetTokenExpires);
+
+    // Send reset email
+    const emailResult = await emailService.sendResetPasswordEmail(
+      user.email, 
+      user.username, 
+      resetToken
+    );
+
+    if (!emailResult.success) {
+      console.error('Failed to send reset email:', emailResult.error);
+      return res.status(500).json({ 
+        message: "Error sending reset email. Please try again later." 
+      });
+    }
+
+    res.status(200).json({ 
+      message: "If an account with that email exists, we have sent a password reset link.",
+      // In development, you might want to return the token for testing
+      ...(process.env.NODE_ENV === 'development' && { resetToken })
+    });
+
+  } catch (error) {
+    console.error("Error in password reset request:", error);
+    res.status(500).json({ 
+      message: "Server error during password reset request.", 
+      error: error.message 
+    });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  // Validate input using Joi
+  const { error, value } = resetPasswordSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ 
+      message: "Validation error", 
+      errors: error.details.map(detail => ({
+        field: detail.path[0],
+        message: detail.message
+      }))
+    });
+  }
+
+  const { token, newPassword } = value;
+
+  try {
+    // Find user by reset token
+    const user = await User.findByResetToken(token);
+    if (!user) {
+      return res.status(400).json({ 
+        message: "Invalid or expired reset token." 
+      });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update password and clear reset token
+    await User.updatePassword(user.id, hashedPassword);
+
+    // Send confirmation email
+    await emailService.sendPasswordResetConfirmation(user.email, user.username);
+
+    res.status(200).json({ 
+      message: "Password has been reset successfully." 
+    });
+
+  } catch (error) {
+    console.error("Error in password reset:", error);
+    res.status(500).json({ 
+      message: "Server error during password reset.", 
+      error: error.message 
+    });
+  }
+};
+

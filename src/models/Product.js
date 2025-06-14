@@ -33,9 +33,12 @@ class Product {
     }
     const newProduct = new Product(product);
     try {
+      //Buat ngubah format ID produk jd PD001, PD002, dst
       // const snapshot = await Product.productsRef.get();
       // const count = snapshot.size + 1;
       // newProduct.product_id = `PD${String(count).padStart(3, "0")}`;
+
+      //Random ID
       const newRef = Product.productsRef.doc();
       newProduct.product_id = newRef.id;
     } catch (error) {

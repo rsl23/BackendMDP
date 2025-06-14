@@ -4,7 +4,7 @@ import express from "express";
 const app = express();
 app.use(express.json());
 
-app.post("/verify-google", async (req, res) => {
+export const verifyGoogleLogin = async (req, res) => {
   const { idToken } = req.body;
 
   try {
@@ -23,4 +23,4 @@ app.post("/verify-google", async (req, res) => {
     console.error("Error verifying token:", error);
     res.status(401).json({ message: "Invalid ID token", error: error.message });
   }
-});
+};

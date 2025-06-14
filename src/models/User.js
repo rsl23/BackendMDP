@@ -11,6 +11,8 @@ class User {
     phone_number = "",
     role = "user",
     access_token = null,
+    reset_password_token = null,
+    reset_password_expires = null,
     created_at,
     deleted_at = null,
   }) {
@@ -22,6 +24,8 @@ class User {
     this.phone_number = phone_number;
     this.role = role;
     this.access_token = access_token;
+    this.reset_password_token = reset_password_token;
+    this.reset_password_expires = reset_password_expires;
     this.created_at = created_at || new Date().toISOString();
     this.deleted_at = deleted_at;
   }
@@ -147,17 +151,76 @@ class User {
     }
   }
 
-  static async softDelete(userId) {
+  //buat nyimpan reset token
+  static async setResetPasswordToken(userId, token, expiresAt) {
     try {
       await User.usersRef.doc(userId).update({
-        deleted_at: new Date().toISOString(),
+        reset_password_token: token,
+        reset_password_expires: expiresAt,
         updated_at: new Date().toISOString(),
-        access_token: null,
       });
       return true;
     } catch (error) {
-      console.error("Error soft deleting user:", error);
+      console.error("Error setting reset password token:", error);
+      return false;
+    }
+  }
+
+  //buat nyari user berdasarkan reset token
+  static async findByResetToken(token) {
+    try {
+      const snapshot = await User.usersRef
+        .where("reset_password_token", "==", token)
+        .where("deleted_at", "==", null)
+        .limit(1)
+        .get();
+
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        const userData = new User({ id: doc.id, ...doc.data() });
+
+        // Check if token is still valid
+        if (new Date() > new Date(userData.reset_password_expires)) {
+          return null; // Token expired
+        }
+
+        return userData;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error finding user by reset token:", error);
       throw error;
+    }
+  }
+
+  //buat clear reset token setelah digunakan
+  static async clearResetPasswordToken(userId) {
+    try {
+      await User.usersRef.doc(userId).update({
+        reset_password_token: null,
+        reset_password_expires: null,
+        updated_at: new Date().toISOString(),
+      });
+      return true;
+    } catch (error) {
+      console.error("Error clearing reset password token:", error);
+      return false;
+    }
+  }
+
+  //buat update password
+  static async updatePassword(userId, hashedPassword) {
+    try {
+      await User.usersRef.doc(userId).update({
+        password: hashedPassword,
+        reset_password_token: null,
+        reset_password_expires: null,
+        updated_at: new Date().toISOString(),
+      });
+      return true;
+    } catch (error) {
+      console.error("Error updating password:", error);
+      return false;
     }
   }
 
