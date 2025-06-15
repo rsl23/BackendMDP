@@ -1,11 +1,10 @@
 import Transaction from "../models/Transaction.js";
+import { successResponse, errorResponse } from "../utils/responseUtil.js";
 
 export const createTransaction = async (req, res) => {
   const { seller_id, buyer_id, product_id, quantity, total_price } = req.body;
   if (!seller_id || !buyer_id || !product_id || !quantity || !total_price) {
-    return res
-      .status(400)
-      .json({ status: 400, message: "All fields are required." });
+    return errorResponse(res, 400, "All fields are required.");
   } else {
     try {
       const newTransaction = await Transaction.createTransaction({
@@ -17,16 +16,14 @@ export const createTransaction = async (req, res) => {
         datetime: new Date().toISOString(),
         payment_status: "pending",
       });
-      return res.status(201).json({
-        status: 201,
-        transaction: newTransaction,
-        message: "Transaction created successfully.",
+      return successResponse(res, 201, "Transaction created successfully", {
+        transaction: newTransaction
       });
     } catch (error) {
       console.error("Error creating transaction:", error);
-      return res
-        .status(500)
-        .json({ status: 500, message: "Failed to create transaction." });
+      return errorResponse(res, 500, "Failed to create transaction", {
+        error: error.message
+      });
     }
   }
 };

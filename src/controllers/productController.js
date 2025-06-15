@@ -1,16 +1,17 @@
 import Product from "../models/Product.js";
+import { successResponse, errorResponse } from "../utils/responseUtil.js";
 
 export const addProduct = async (req, res) => {
   try {
     const productData = req.body;
     const newProduct = await Product.create(productData);
-    return res.status(201).json({
-      status: 201,
-      product: newProduct,
-      message: "Berhasil add Product",
+    return successResponse(res, 201, "Berhasil add Product", {
+      product: newProduct
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return errorResponse(res, 500, "Failed to add product", {
+      error: err.message
+    });
   }
 };
 
@@ -18,10 +19,12 @@ export const findProductById = async (req, res) => {
   const { product_id } = req.params;
   try {
     const product = await Product.findProductById(product_id);
-
-    return res.status(200).json({ status: 200, product: product });
+    if (!product) {
+      return errorResponse(res, 404, "Product not found");
+    }
+    return successResponse(res, 200, "Product found", { product });
   } catch (err) {
-    return res.status(500).json({ status: 500, error: err.message });
+    return errorResponse(res, 500, "Failed to fetch product", { error: err.message });
   }
 };
 
@@ -29,9 +32,9 @@ export const findProductByName = async (req, res) => {
   const { name } = req.params;
   try {
     const product = await Product.findProductByName(name);
-    return res.status(200).json({ status: 200, product: product });
+    return successResponse(res, 200, "Products found", { product });
   } catch (err) {
-    return res.status(500).json({ status: 500, error: err.message });
+    return errorResponse(res, 500, "Failed to search products", { error: err.message });
   }
 };
 
@@ -43,26 +46,14 @@ export const getAllProducts = async (req, res) => {
 
     // Validasi parameter pagination
     if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
-      return res.status(400).json({
-        status: 400,
-        message:
-          "Invalid pagination parameters. Page must be >= 1, limit must be between 1-100.",
-      });
+      return errorResponse(res, 400, "Invalid pagination parameters. Page must be >= 1, limit must be between 1-100.");
     }
 
-    const result = await Product.getAllProducts(pageNum, limitNum);
-
-    return res.status(200).json({
-      status: 200,
-      message: "Products retrieved successfully",
-      data: result,
-    });
+    const result = await Product.getAllProducts(pageNum, limitNum);    return successResponse(res, 200, "Products retrieved successfully", result);
   } catch (error) {
     console.error("Error fetching all products:", error);
-    return res.status(500).json({
-      status: 500,
-      message: "Server error while fetching products.",
-      error: error.message,
+    return errorResponse(res, 500, "Server error while fetching products", {
+      error: error.message
     });
   }
 };
@@ -71,43 +62,29 @@ export const updateProduct = async (req, res) => {
   const { product_id } = req.params;
 
   if (!product_id) {
-    return res.status(400).json({
-      status: 400,
-      message: "Product ID is required.",
-    });
+    return errorResponse(res, 400, "Product ID is required.");
   }
 
   try {
-    // Check if product exists
-    const existingProduct = await Product.findProductById(product_id);
+    // Check if product exists    const existingProduct = await Product.findProductById(product_id);
     if (!existingProduct) {
-      return res.status(404).json({
-        status: 404,
-        message: "Product not found.",
-      });
+      return errorResponse(res, 404, "Product not found.");
     }
 
     // Update product
     const updatedProduct = await Product.update(product_id, req.body);
 
     if (!updatedProduct) {
-      return res.status(404).json({
-        status: 404,
-        message: "Failed to update product.",
-      });
+      return errorResponse(res, 404, "Failed to update product.");
     }
 
-    return res.status(200).json({
-      status: 200,
-      message: "Product updated successfully",
-      product: updatedProduct,
+    return successResponse(res, 200, "Product updated successfully", {
+      product: updatedProduct
     });
   } catch (error) {
     console.error("Error updating product:", error);
-    return res.status(500).json({
-      status: 500,
-      message: "Server error while updating product.",
-      error: error.message,
+    return errorResponse(res, 500, "Server error while updating product", {
+      error: error.message
     });
   }
 };
@@ -116,42 +93,27 @@ export const deleteProduct = async (req, res) => {
   const { product_id } = req.params;
 
   if (!product_id) {
-    return res.status(400).json({
-      status: 400,
-      message: "Product ID is required.",
-    });
+    return errorResponse(res, 400, "Product ID is required.");
   }
 
-  try {
-    // Check if product exists and not already deleted
+  try {    // Check if product exists and not already deleted
     const existingProduct = await Product.findProductById(product_id);
     if (!existingProduct) {
-      return res.status(404).json({
-        status: 404,
-        message: "Product not found.",
-      });
+      return errorResponse(res, 404, "Product not found.");
     }
 
     // Soft delete product
     const deleteResult = await Product.softDelete(product_id);
 
     if (!deleteResult) {
-      return res.status(500).json({
-        status: 500,
-        message: "Failed to delete product.",
-      });
+      return errorResponse(res, 500, "Failed to delete product.");
     }
 
-    return res.status(200).json({
-      status: 200,
-      message: "Product deleted successfully",
-    });
+    return successResponse(res, 200, "Product deleted successfully");
   } catch (error) {
     console.error("Error deleting product:", error);
-    return res.status(500).json({
-      status: 500,
-      message: "Server error while deleting product.",
-      error: error.message,
+    return errorResponse(res, 500, "Server error while deleting product", {
+      error: error.message
     });
   }
 };

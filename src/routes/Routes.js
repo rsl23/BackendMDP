@@ -24,11 +24,13 @@ import {
 
 import { createTransaction } from "../controllers/transactionController.js";
 
+import ChatController from "../controllers/chatController.js";
+
 import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// =================== User routes ===================
+// ============================== USER ROUTES =======================
 router.post("/signup", signup);
 router.post("/login", login);
 router.post("/logout", authenticateToken, logout);
@@ -51,5 +53,12 @@ router.get("/product/search/:name", findProductByName);
 
 // =================== Transaction routes ===================
 router.post("/create-transaction", createTransaction);
+
+// =================== Chat routes ===================
+router.post("/chat", authenticateToken, ChatController.startChat);
+router.get("/chat/conversations", authenticateToken, ChatController.getUserConversations);
+router.get("/chat/conversation/:user_id", authenticateToken, ChatController.getConversation);
+router.put("/chat/:chat_id/status", authenticateToken, ChatController.updateMessageStatus);
+router.delete("/chat/:chat_id", authenticateToken, ChatController.deleteMessage);
 
 export default router;

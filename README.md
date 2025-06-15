@@ -78,6 +78,15 @@ GET    /product/search/:name     - Search products by name
 POST   /create-transaction       - Create new transaction
 ```
 
+### Chat Routes
+```
+POST   /chat/start                      - Start a new chat with a user
+GET    /chat/conversations              - Get all conversations for current user
+GET    /chat/conversation/:user_id      - Get conversation with specific user
+PUT    /chat/:chat_id/status            - Update message status (delivered/read)
+DELETE /chat/:chat_id                   - Delete a chat message (soft delete)
+```
+
 ### Utility Routes
 ```
 GET    /db-status                - Check database connection status
@@ -308,6 +317,150 @@ interface ApiService {
         @Body request: UpdateProfileRequest
     ): Response<UpdateProfileResponse>
 }
+```
+
+## 💬 Chat API Documentation
+
+### Start Chat
+Start a new chat conversation with another user.
+
+**Endpoint:** `POST /chat/start`
+
+**Request Body:**
+```json
+{
+    "receiver_id": "US001",
+    "message": "Hi, is this product still available?"
+}
+```
+
+**Response:**
+```json
+{
+    "success": true,
+    "message": "Chat started successfully",
+    "data": {
+        "chat_id": "CH001",
+        "sender_id": "US002",
+        "receiver_id": "US001",
+        "message": "Hi, is this product still available?",
+        "datetime": "2024-01-15T10:30:00.000Z",
+        "status": "sent"
+    }
+}
+```
+
+### Get User Conversations
+Get all conversation list for the current user.
+
+**Endpoint:** `GET /chat/conversations`
+
+**Response:**
+```json
+{
+    "success": true,
+    "message": "Conversations retrieved successfully",
+    "data": {
+        "conversations": [
+            {
+                "otherUserId": "US001",
+                "lastMessage": "Thank you for your interest!",
+                "lastMessageTime": "2024-01-15T10:35:00.000Z",
+                "lastMessageStatus": "read",
+                "lastMessageSender": "US001",
+                "otherUser": {
+                    "id": "US001",
+                    "name": "John Doe",
+                    "email": "john@example.com",
+                    "profile_picture": "https://example.com/profile.jpg"
+                }
+            }
+        ],
+        "total": 1
+    }
+}
+```
+
+### Get Conversation with User
+Get chat messages between current user and specific user.
+
+**Endpoint:** `GET /chat/conversation/:user_id?page=1&limit=50`
+
+**Response:**
+```json
+{
+    "success": true,
+    "message": "Conversation retrieved successfully",
+    "data": {
+        "messages": [
+            {
+                "id": "CH001",
+                "user_sender": "US002",
+                "user_receiver": "US001",
+                "chat": "Hi, is this product still available?",
+                "datetime": "2024-01-15T10:30:00.000Z",
+                "status": "read"
+            }
+        ],
+        "pagination": {
+            "currentPage": 1,
+            "totalPages": 1,
+            "totalMessages": 1,
+            "hasNext": false,
+            "hasPrev": false,
+            "limit": 50
+        },
+        "otherUser": {
+            "id": "US001",
+            "name": "John Doe",
+            "email": "john@example.com",
+            "profile_picture": "https://example.com/profile.jpg"
+        }
+    }
+}
+```
+
+### Update Message Status
+Update message status to 'delivered' or 'read' (only by receiver).
+
+**Endpoint:** `PUT /chat/:chat_id/status`
+
+**Request Body:**
+```json
+{
+    "status": "read"
+}
+```
+
+**Response:**
+```json
+{
+    "success": true,
+    "message": "Message status updated successfully",
+    "data": {
+        "chat_id": "CH001",
+        "status": "read",
+        "updated_at": "2024-01-15T10:35:00.000Z"
+    }
+}
+```
+
+### Delete Message
+Soft delete a chat message (only by sender).
+
+**Endpoint:** `DELETE /chat/:chat_id`
+
+**Response:**
+```json
+{
+    "success": true,
+    "message": "Message deleted successfully",
+    "data": {
+        "chat_id": "CH001",
+        "deleted_at": "2024-01-15T10:40:00.000Z"
+    }
+}
+```
 ```
 
 ## 🤝 Contributing

@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import emailService from "../services/emailService.js";
 import dotenv from "dotenv";
+import { successResponse, errorResponse } from "../utils/responseUtil.js";
 import { 
   signupSchema, 
   resetPasswordSchema, 
@@ -25,13 +26,11 @@ export const signup = async (req, res) => {
   // Validate input using Joi
   const { error, value } = signupSchema.validate(req.body);
   if (error) {
-    return res.status(400).json({ 
-      message: "Validation error", 
-      errors: error.details.map(detail => ({
-        field: detail.path[0],
-        message: detail.message
-      }))
-    });
+    const validationErrors = error.details.map(detail => ({
+      field: detail.path[0],
+      message: detail.message
+    }));
+    return errorResponse(res, 400, "Validation error", validationErrors);
   }
 
   const { username, email, password, address, phone_number, role } = value;
@@ -39,9 +38,7 @@ export const signup = async (req, res) => {
   try {
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
-      return res
-        .status(400)
-        .json({ message: "User already exists with this email." });
+      return errorResponse(res, 400, "User already exists with this email.");
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -64,16 +61,13 @@ export const signup = async (req, res) => {
     await User.updateAccessToken(newUser.id, token);
     const userResponse = newUser.toJSON(); // Use toJSON to exclude password
 
-    res.status(201).json({
-      message: "User created successfully",
+    return successResponse(res, 201, "User created successfully", {
       token,
-      user: userResponse,
+      user: userResponse
     });
   } catch (error) {
     console.error("Signup error:", error);
-    res
-      .status(500)
-      .json({ message: "Server error during signup.", error: error.message });
+    return errorResponse(res, 500, "Server error during signup.", error.message);
   }
 };
 
@@ -81,13 +75,11 @@ export const login = async (req, res) => {
   // Validate input using Joi
   const { error, value } = loginSchema.validate(req.body);
   if (error) {
-    return res.status(400).json({ 
-      message: "Validation error", 
-      errors: error.details.map(detail => ({
-        field: detail.path[0],
-        message: detail.message
-      }))
-    });
+    const validationErrors = error.details.map(detail => ({
+      field: detail.path[0],
+      message: detail.message
+    }));
+    return errorResponse(res, 400, "Validation error", validationErrors);
   }
 
   const { email, password } = value;
@@ -95,17 +87,13 @@ export const login = async (req, res) => {
   try {
     const user = await User.findByEmail(email);
     if (!user) {
-      return res
-        .status(400)
-        .json({ message: "Invalid credentials. User not found." });
+      return errorResponse(res, 400, "Invalid credentials. User not found.");
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res
-        .status(400)
-        .json({ message: "Invalid credentials. Password incorrect." });
+      return errorResponse(res, 400, "Invalid credentials. Password incorrect.");
     }
 
     // Generate a token
@@ -116,16 +104,13 @@ export const login = async (req, res) => {
     await User.updateAccessToken(user.id, token);
     const userResponse = user.toJSON(); // Use toJSON to exclude password
 
-    res.status(200).json({
-      message: "Logged in successfully",
+    return successResponse(res, 200, "Logged in successfully", {
       token,
-      user: userResponse,
+      user: userResponse
     });
   } catch (error) {
     console.error("Login error:", error);
-    res
-      .status(500)
-      .json({ message: "Server error during login.", error: error.message });
+    return errorResponse(res, 500, "Server error during login.", error.message);
   }
 };
 
@@ -139,19 +124,13 @@ export const logout = async (req, res) => {
   if (userId) {
     try {
       await User.updateAccessToken(userId, null); // Clear the access token in the database
-      res.status(200).json({
-        message: "Logged out successfully. Token invalidated server-side.",
-      });
+      return successResponse(res, 200, "Logged out successfully. Token invalidated server-side.");
     } catch (error) {
       console.error("Logout error:", error);
-      res
-        .status(500)
-        .json({ message: "Server error during logout.", error: error.message });
+      return errorResponse(res, 500, "Server error during logout.", error.message);
     }
   } else {
-    res
-      .status(200)
-      .json({ message: "Logged out successfully. Client should clear token." });
+    return successResponse(res, 200, "Logged out successfully. Client should clear token.");
   }
 };
 
@@ -159,22 +138,20 @@ export const getUserProfile = async (req, res) => {
   const userId = req.user?.id; // Get user ID from authenticated request
 
   if (!userId) {
-    return res.status(401).json({ message: "Unauthorized access." });
+    return errorResponse(res, 401, "Unauthorized access.");
   }
 
   try {
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: "User not found." });
+      return errorResponse(res, 404, "User not found.");
     }
 
     const userResponse = user.toJSON(); // Use toJSON to exclude password
-    res.status(200).json({ user: userResponse });
+    return successResponse(res, 200, "User profile retrieved successfully", { user: userResponse });
   } catch (error) {
     console.error("Error fetching user profile:", error);
-    res
-      .status(500)
-      .json({ message: "Server error while fetching user profile.", error: error.message });
+    return errorResponse(res, 500, "Server error while fetching user profile.", error.message);
   }
 };
 
@@ -182,13 +159,11 @@ export const requestPasswordReset = async (req, res) => {
   // Validate input using Joi
   const { error, value } = requestPasswordResetSchema.validate(req.body);
   if (error) {
-    return res.status(400).json({ 
-      message: "Validation error", 
-      errors: error.details.map(detail => ({
-        field: detail.path[0],
-        message: detail.message
-      }))
-    });
+    const validationErrors = error.details.map(detail => ({
+      field: detail.path[0],
+      message: detail.message
+    }));
+    return errorResponse(res, 400, "Validation error", validationErrors);
   }
 
   const { email } = value;
@@ -197,9 +172,7 @@ export const requestPasswordReset = async (req, res) => {
     const user = await User.findByEmail(email);
     if (!user) {
       // Don't reveal whether user exists or not for security
-      return res.status(200).json({ 
-        message: "If an account with that email exists, we have sent a password reset link." 
-      });
+      return successResponse(res, 200, "If an account with that email exists, we have sent a password reset link.");
     }
 
     // Generate reset token
@@ -218,23 +191,20 @@ export const requestPasswordReset = async (req, res) => {
 
     if (!emailResult.success) {
       console.error('Failed to send reset email:', emailResult.error);
-      return res.status(500).json({ 
-        message: "Error sending reset email. Please try again later." 
-      });
+      return errorResponse(res, 500, "Error sending reset email. Please try again later.");
     }
 
-    res.status(200).json({ 
-      message: "If an account with that email exists, we have sent a password reset link.",
-      // In development, you might want to return the token for testing
-      ...(process.env.NODE_ENV === 'development' && { resetToken })
-    });
+    const responseData = process.env.NODE_ENV === 'development' ? { resetToken } : null;
+    return successResponse(
+      res, 
+      200, 
+      "If an account with that email exists, we have sent a password reset link.",
+      responseData
+    );
 
   } catch (error) {
     console.error("Error in password reset request:", error);
-    res.status(500).json({ 
-      message: "Server error during password reset request.", 
-      error: error.message 
-    });
+    return errorResponse(res, 500, "Server error during password reset request.", error.message);
   }
 };
 
@@ -242,13 +212,11 @@ export const resetPassword = async (req, res) => {
   // Validate input using Joi
   const { error, value } = resetPasswordSchema.validate(req.body);
   if (error) {
-    return res.status(400).json({ 
-      message: "Validation error", 
-      errors: error.details.map(detail => ({
-        field: detail.path[0],
-        message: detail.message
-      }))
-    });
+    const validationErrors = error.details.map(detail => ({
+      field: detail.path[0],
+      message: detail.message
+    }));
+    return errorResponse(res, 400, "Validation error", validationErrors);
   }
 
   const { token, newPassword } = value;
@@ -257,9 +225,7 @@ export const resetPassword = async (req, res) => {
     // Find user by reset token
     const user = await User.findByResetToken(token);
     if (!user) {
-      return res.status(400).json({ 
-        message: "Invalid or expired reset token." 
-      });
+      return errorResponse(res, 400, "Invalid or expired reset token.");
     }
 
     // Hash new password
@@ -272,16 +238,11 @@ export const resetPassword = async (req, res) => {
     // Send confirmation email
     await emailService.sendPasswordResetConfirmation(user.email, user.username);
 
-    res.status(200).json({ 
-      message: "Password has been reset successfully." 
-    });
+    return successResponse(res, 200, "Password has been reset successfully.");
 
   } catch (error) {
     console.error("Error in password reset:", error);
-    res.status(500).json({ 
-      message: "Server error during password reset.", 
-      error: error.message 
-    });
+    return errorResponse(res, 500, "Server error during password reset.", error.message);
   }
 };
 
@@ -291,18 +252,18 @@ export const getUserById = async (req, res) => {
   const requesterId = req.user?.id; // User yang melakukan request
 
   if (!userId) {
-    return res.status(400).json({ message: "User ID is required." });
+    return errorResponse(res, 400, "User ID is required.");
   }
 
   try {
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: "User not found." });
+      return errorResponse(res, 404, "User not found.");
     }
 
     // Check if user is deleted/soft deleted
     if (user.deleted_at) {
-      return res.status(404).json({ message: "User not found." });
+      return errorResponse(res, 404, "User not found.");
     }
 
     // Create public profile (exclude sensitive information)
@@ -323,17 +284,14 @@ export const getUserById = async (req, res) => {
       publicProfile.role = user.role;
     }
 
-    res.status(200).json({ 
+    return successResponse(res, 200, "User profile retrieved successfully", { 
       user: publicProfile,
       isOwnProfile: requesterId === userId
     });
 
   } catch (error) {
     console.error("Error fetching user by ID:", error);
-    res.status(500).json({ 
-      message: "Server error while fetching user profile.", 
-      error: error.message 
-    });
+    return errorResponse(res, 500, "Server error while fetching user profile.", error.message);
   }
 };
 
@@ -373,26 +331,20 @@ export const searchUsers = async (req, res) => {
   const { query } = req.query;
 
   if (!query || query.trim().length < 2) {
-    return res.status(400).json({ 
-      message: "Search query must be at least 2 characters long." 
-    });
+    return errorResponse(res, 400, "Search query must be at least 2 characters long.");
   }
 
   try {
     const searchResults = await User.searchUsers(query.trim(), 10);
 
-    res.status(200).json({
+    return successResponse(res, 200, "Users search completed", {
       users: searchResults,
       query: query,
       count: searchResults.length
     });
-
   } catch (error) {
     console.error("Error searching users:", error);
-    res.status(500).json({ 
-      message: "Server error while searching users.", 
-      error: error.message 
-    });
+    return errorResponse(res, 500, "Server error while searching users.", error.message);
   }
 };
 
@@ -401,39 +353,36 @@ export const updateUserProfile = async (req, res) => {
   const userId = req.user?.id; // Get user ID from authenticated request
 
   if (!userId) {
-    return res.status(401).json({ message: "Unauthorized access." });
+    return errorResponse(res, 401, "Unauthorized access.");
   }
 
   // Validate input using Joi
   const { error, value } = updateProfileSchema.validate(req.body);
   if (error) {
-    return res.status(400).json({ 
-      message: "Validation error", 
-      errors: error.details.map(detail => ({
-        field: detail.path[0],
-        message: detail.message
-      }))
-    });
+    const validationErrors = error.details.map(detail => ({
+      field: detail.path[0],
+      message: detail.message
+    }));
+    return errorResponse(res, 400, "Validation error", validationErrors);
   }
 
   try {
     // Check if user exists
     const existingUser = await User.findById(userId);
     if (!existingUser) {
-      return res.status(404).json({ message: "User not found." });
+      return errorResponse(res, 404, "User not found.");
     }
 
     // Update profile
     const updatedUser = await User.updateProfile(userId, value);
     
     if (!updatedUser) {
-      return res.status(404).json({ message: "Failed to update profile." });
+      return errorResponse(res, 404, "Failed to update profile.");
     }
 
     const userResponse = updatedUser.toJSON(); // Exclude sensitive information
     
-    res.status(200).json({
-      message: "Profile updated successfully",
+    return successResponse(res, 200, "Profile updated successfully", {
       user: userResponse
     });
 
@@ -442,16 +391,10 @@ export const updateUserProfile = async (req, res) => {
     
     // Handle specific error cases
     if (error.message === "Username already taken by another user.") {
-      return res.status(409).json({ 
-        message: "Username is already taken",
-        error: error.message 
-      });
+      return errorResponse(res, 409, "Username is already taken", error.message);
     }
     
-    res.status(500).json({ 
-      message: "Server error while updating profile.", 
-      error: error.message 
-    });
+    return errorResponse(res, 500, "Server error while updating profile.", error.message);
   }
 };
 
@@ -460,19 +403,17 @@ export const changePassword = async (req, res) => {
   const userId = req.user?.id;
 
   if (!userId) {
-    return res.status(401).json({ message: "Unauthorized access." });
+    return errorResponse(res, 401, "Unauthorized access.");
   }
 
   // Validate input using Joi
   const { error, value } = changePasswordSchema.validate(req.body);
   if (error) {
-    return res.status(400).json({ 
-      message: "Validation error", 
-      errors: error.details.map(detail => ({
-        field: detail.path[0],
-        message: detail.message
-      }))
-    });
+    const validationErrors = error.details.map(detail => ({
+      field: detail.path[0],
+      message: detail.message
+    }));
+    return errorResponse(res, 400, "Validation error", validationErrors);
   }
 
   const { currentPassword, newPassword } = value;
@@ -481,13 +422,13 @@ export const changePassword = async (req, res) => {
     // Get user data
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: "User not found." });
+      return errorResponse(res, 404, "User not found.");
     }
 
     // Verify current password
     const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
     if (!isCurrentPasswordValid) {
-      return res.status(400).json({ message: "Current password is incorrect." });
+      return errorResponse(res, 400, "Current password is incorrect.");
     }
 
     // Hash new password
@@ -500,16 +441,11 @@ export const changePassword = async (req, res) => {
     // Send confirmation email
     await emailService.sendPasswordChangeConfirmation(user.email, user.username);
 
-    res.status(200).json({ 
-      message: "Password changed successfully." 
-    });
+    return successResponse(res, 200, "Password changed successfully.");
 
   } catch (error) {
     console.error("Error changing password:", error);
-    res.status(500).json({ 
-      message: "Server error while changing password.", 
-      error: error.message 
-    });
+    return errorResponse(res, 500, "Server error while changing password.", error.message);
   }
 };
 
