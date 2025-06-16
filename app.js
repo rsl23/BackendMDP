@@ -23,6 +23,7 @@ app.get("/db-status", (req, res) => {
       );
   }
 });
+console.log("Initializing Express app...");
 
 app.use("/", router);
 

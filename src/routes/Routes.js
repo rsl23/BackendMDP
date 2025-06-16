@@ -22,7 +22,12 @@ import {
   findProductByName,
 } from "../controllers/productController.js";
 
-import { createTransaction } from "../controllers/transactionController.js";
+import { 
+  createTransaction, 
+  getMyTransactions, 
+  getTransactionById, 
+  updateTransactionStatus 
+} from "../controllers/transactionController.js";
 
 import ChatController from "../controllers/chatController.js";
 
@@ -52,7 +57,10 @@ router.delete("/product/:product_id", deleteProduct);              // Route untu
 router.get("/product/search/:name", findProductByName);
 
 // =================== Transaction routes ===================
-router.post("/create-transaction", createTransaction);
+router.post("/create-transaction", authenticateToken, createTransaction);
+router.get("/my-transactions", authenticateToken, getMyTransactions);
+router.get("/transaction/:id", authenticateToken, getTransactionById);
+router.put("/transaction/:id/status", authenticateToken, updateTransactionStatus);
 
 // =================== Chat routes ===================
 router.post("/chat", authenticateToken, ChatController.startChat);

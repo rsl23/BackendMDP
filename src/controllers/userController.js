@@ -98,7 +98,7 @@ export const login = async (req, res) => {
 
     // Generate a token
     const tokenPayload = { id: user.id, role: user.role };
-    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: "24h" });
 
     // Update the access token in the database
     await User.updateAccessToken(user.id, token);

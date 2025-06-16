@@ -2,7 +2,9 @@ import { firestore } from "../config/database.js";
 import User from "./User.js";
 import { v4 as uuidv4 } from "uuid";
 
-class Product {  constructor({
+class Product {  
+  constructor({
+    product_id = null,
     name,
     price,
     description,
@@ -12,6 +14,7 @@ class Product {  constructor({
     created_at,
     deleted_at = null,
   }) {
+    this.product_id = product_id;
     this.name = name;
     this.price = price;
     this.description = description;
