@@ -1,4 +1,5 @@
 import express from "express";
+import upload from '../middleware/uploadImage.js';
 
 import { 
   signup, 
@@ -50,10 +51,10 @@ router.get("/search-users", authenticateToken, searchUsers);                // R
 
 // =================== Product routes ===================
 router.get("/products", getAllProducts);                           // Route untuk get all products
-router.post("/add-product", addProduct);
+router.post("/add-product",authenticateToken, upload.single('image'),addProduct);        // Route untuk add product (requires authentication)
 router.get("/product/:product_id", findProductById);
-router.put("/product/:product_id", updateProduct);                 // Route untuk update product
-router.delete("/product/:product_id", deleteProduct);              // Route untuk delete product (soft delete)
+router.put("/product/:product_id", authenticateToken, upload.single("image"),updateProduct);                 // Route untuk update product
+router.delete("/product/:product_id", authenticateToken, deleteProduct);              // Route untuk delete product (soft delete)
 router.get("/product/search/:name", findProductByName);
 
 // =================== Transaction routes ===================

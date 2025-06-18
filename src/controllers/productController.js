@@ -1,14 +1,68 @@
 import Product from "../models/Product.js";
+import User from "../models/User.js";
 import { successResponse, errorResponse } from "../utils/responseUtil.js";
+import { productSchema, productupdateSchema} from "../utils/validation/productSchema.js"
+import fs from 'fs';
+import path from 'path';
+import supabase from '../config/supabase.js';
 
 export const addProduct = async (req, res) => {
   try {
-    const productData = req.body;
+    // Get user ID from JWT token
+    const userId = req.user.id;
+    
+    // Validate user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return errorResponse(res, 404, "User not found");
+    }
+
+    // Validate request data
+    const { error, value } = productSchema.validate(req.body);
+    if (error) {
+      return errorResponse(res, 400, "Validation error", { 
+        error: error.details[0].message 
+      });
+    }
+
+    let imageUrl = null;
+    if (req.file) {
+      const filePath = path.resolve(req.file.path);
+      const fileBuffer = fs.readFileSync(filePath);
+      const fileName = `product/${Date.now()}_${req.file.originalname}`;
+
+      const { data, error: uploadError } = await supabase.storage
+        .from('images') 
+        .upload(fileName, fileBuffer, {
+          contentType: req.file.mimetype,
+        });
+
+      fs.unlinkSync(filePath); // Hapus file lokal
+
+      if (uploadError) {
+        return errorResponse(res, 500, 'Upload gambar gagal', { error: uploadError.message });
+      }
+
+      imageUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/images/${fileName}`;
+    }
+
+    // Prepare product data with user ID
+    const productData = {
+      ...value, // Use validated data
+      user_id: userId,
+      image: imageUrl
+    };
+
+    console.log("Creating product with data:", productData);
+    
+    // Create product in database
     const newProduct = await Product.create(productData);
-    return successResponse(res, 201, "Berhasil add Product", {
+    
+    return successResponse(res, 201, "Product added successfully", {
       product: newProduct
     });
   } catch (err) {
+    console.error("Error adding product:", err);
     return errorResponse(res, 500, "Failed to add product", {
       error: err.message
     });
@@ -60,19 +114,68 @@ export const getAllProducts = async (req, res) => {
 
 export const updateProduct = async (req, res) => {
   const { product_id } = req.params;
+  const userId = req.user.id;
 
   if (!product_id) {
     return errorResponse(res, 400, "Product ID is required.");
   }
 
   try {
-    // Check if product exists    const existingProduct = await Product.findProductById(product_id);
+    // Check if product exists
+    const existingProduct = await Product.findProductById(product_id);
     if (!existingProduct) {
       return errorResponse(res, 404, "Product not found.");
     }
 
+    // Check if user is the owner of the product
+    if (existingProduct.user_id !== userId) {
+      return errorResponse(res, 403, "You don't have permission to update this product.");
+    }
+
+    // Validate request data
+    const { error, value } = productupdateSchema.validate(req.body);
+    if (error) {
+      return errorResponse(res, 400, "Validation error", { 
+        error: error.details[0].message 
+      });
+    }
+
+    if (req.file) {
+      const filePath = path.resolve(req.file.path);
+      const fileBuffer = fs.readFileSync(filePath);
+      const fileName = `product/${Date.now()}_${req.file.originalname}`;
+
+      const { data, error: uploadError } = await supabase.storage
+        .from('images') 
+        .upload(fileName, fileBuffer, {
+          contentType: req.file.mimetype,
+        });
+
+      fs.unlinkSync(filePath); // Hapus file lokal
+
+      if (uploadError) {
+        return errorResponse(res, 500, 'Upload gambar gagal', { error: uploadError.message });
+      }
+
+      const imageUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/images/${fileName}`;
+      value.image = imageUrl; 
+        if (existingProduct.image) {
+    const oldPath = existingProduct.image.split("/storage/v1/object/public/images/")[1];
+
+        if (oldPath) {
+          const { error: deleteError } = await supabase.storage
+            .from("images")
+            .remove([oldPath]);
+
+          if (deleteError) {
+            console.warn("Gagal menghapus gambar lama:", deleteError.message);
+          }
+        }
+      }
+    }
+    
     // Update product
-    const updatedProduct = await Product.update(product_id, req.body);
+    const updatedProduct = await Product.update(product_id, value);
 
     if (!updatedProduct) {
       return errorResponse(res, 404, "Failed to update product.");
@@ -91,15 +194,22 @@ export const updateProduct = async (req, res) => {
 
 export const deleteProduct = async (req, res) => {
   const { product_id } = req.params;
+  const userId = req.user.userId;
 
   if (!product_id) {
     return errorResponse(res, 400, "Product ID is required.");
   }
 
-  try {    // Check if product exists and not already deleted
+  try {
+    // Check if product exists and not already deleted
     const existingProduct = await Product.findProductById(product_id);
     if (!existingProduct) {
       return errorResponse(res, 404, "Product not found.");
+    }
+
+    // Check if user is the owner of the product
+    if (existingProduct.user_id !== userId) {
+      return errorResponse(res, 403, "You don't have permission to delete this product.");
     }
 
     // Soft delete product
