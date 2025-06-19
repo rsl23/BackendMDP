@@ -14,6 +14,7 @@ import {
   // getUsers,              
   searchUsers            
 } from "../controllers/userController.js";
+import { verifyFirebaseToken, updateProfilePicture } from "../controllers/authController.js";
 import {
   addProduct,
   getAllProducts,
@@ -31,17 +32,21 @@ import {
 } from "../controllers/transactionController.js";
 
 import ChatController from "../controllers/chatController.js";
-
+import { verifyFirebaseToken } from "../controllers/authController.js";
 import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();
 
+// ============================== AUTH ROUTES =======================
+router.post("/verify-token", verifyFirebaseToken); // Endpoint baru untuk verifikasi token Firebase
+
 // ============================== USER ROUTES =======================
-router.post("/signup", signup);
-router.post("/login", login);
+router.post("/signup", signup); // Untuk backward compatibility
+router.post("/login", login); // Untuk backward compatibility
 router.post("/logout", authenticateToken, logout);
 router.get("/me-profile", authenticateToken, getUserProfile);
 router.put("/me-profile", authenticateToken, updateUserProfile);         // Route untuk update profile pribadi
+router.post("/update-profile-picture", authenticateToken, upload.single('image'), updateProfilePicture); // Route untuk update foto profil
 router.post("/change-password", authenticateToken, changePassword);      // Route untuk change password
 router.post("/request-password-reset", requestPasswordReset);
 router.post("/reset-password", resetPassword);

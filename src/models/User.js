@@ -5,7 +5,7 @@ class User {
   constructor({
     id,
     email,
-    password,
+    // password,
     username,
     address = "",
     phone_number = "",
@@ -13,7 +13,7 @@ class User {
     access_token = null,
     reset_password_token = null, //
     reset_password_expires = null, // 
-    google_uid = null,              // Google User ID untuk Google Login
+    firebase_uid = null,              // Google User ID untuk Google Login
     profile_picture = null,         // URL profile picture dari Google
     auth_provider = "local",        // Provider authentication: "local", "google", atau "both"
     created_at,
@@ -21,7 +21,7 @@ class User {
   }) {
     this.id = id || uuidv4();
     this.email = email;
-    this.password = password;
+    // this.password = password;
     this.username = username;
     this.address = address;
     this.phone_number = phone_number;
@@ -29,8 +29,7 @@ class User {
     this.access_token = access_token;
     this.reset_password_token = reset_password_token; //
     this.reset_password_expires = reset_password_expires; //
-    // PERUBAHAN 2: Assign field baru untuk Google Login
-    this.google_uid = google_uid;
+    this.firebase_uid = firebase_uid;
     this.profile_picture = profile_picture;
     this.auth_provider = auth_provider;
     this.created_at = created_at || new Date().toISOString();
@@ -47,9 +46,9 @@ class User {
     }
     
     // Password wajib untuk local users, optional untuk Google users
-    if (userData.auth_provider === "local" && !userData.password) {
-      throw new Error("Password is required for local users.");
-    }
+    // if (userData.auth_provider === "local" && !userData.password) {
+    //   throw new Error("Password is required for local users.");
+    // }
 
     const newUser = new User(userData);
     try {
@@ -73,13 +72,13 @@ class User {
       
       await User.usersRef.doc(newUser.id).set({
         email: newUser.email,
-        password: newUser.password,
+        // password: newUser.password,
         username: newUser.username,
         address: newUser.address,
         phone_number: newUser.phone_number,
         role: newUser.role,
         // Menambahkan field Google Login ke database
-        google_uid: newUser.google_uid,
+        firebase_uid: newUser.firebase_uid,
         profile_picture: newUser.profile_picture,
         auth_provider: newUser.auth_provider,
         created_at: newUser.created_at,
@@ -239,12 +238,11 @@ class User {
       return false;
     }
   }
-
-  // Method baru untuk mencari user berdasarkan Google UID
-  static async findByGoogleUid(googleUid) {
+  // Method untuk mencari user berdasarkan Firebase UID
+  static async findByFirebaseUid(firebaseUid) {
     try {
       const snapshot = await User.usersRef
-        .where("google_uid", "==", googleUid)
+        .where("firebase_uid", "==", firebaseUid)
         .where("deleted_at", "==", null)
         .limit(1)
         .get();
@@ -255,9 +253,14 @@ class User {
       }
       return null;
     } catch (error) {
-      console.error("Error finding user by Google UID:", error);
+      console.error("Error finding user by Firebase UID:", error);
       throw error;
     }
+  }
+  
+  // Alias untuk backward compatibility
+  static async findByGoogleUid(googleUid) {
+    return User.findByFirebaseUid(googleUid);
   }
 
   //Method untuk mengambil semua users dengan pagination
