@@ -11,7 +11,7 @@ dotenv.config();
  */
 export const authenticateToken = async (req, res, next) => {
   try {
-    const authHeader = req.headers['authorization'];
+    const authHeader = req.headers['Authorization'];
     const token = authHeader && authHeader.split(' ')[1]; // Format: Bearer TOKEN
     
     if (!token) {

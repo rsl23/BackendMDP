@@ -32,7 +32,7 @@ import {
 } from "../controllers/transactionController.js";
 
 import ChatController from "../controllers/chatController.js";
-import { verifyFirebaseToken } from "../controllers/authController.js";
+// import { verifyFirebaseToken } from "../controllers/authController.js";
 import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();

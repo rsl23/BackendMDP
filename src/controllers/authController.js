@@ -14,15 +14,15 @@ app.use(express.json());
  * Mendukung login dengan email/password atau Google
  */
 export const verifyFirebaseToken = async (req, res) => {
-  const { idToken } = req.body;
-
-  if (!idToken) {
+  const token = req.body.token;
+  console.log("Received token:", req.body.token);
+  if (!token) {
     return errorResponse(res, 400, "ID token is required");
   }
 
   try {
     // 1. Verifikasi token dengan Firebase Admin
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const decodedToken = await admin.auth().verifyIdToken(token);
     const uid = decodedToken.uid;
     
     // 2. Ambil data lengkap user dari Firebase Auth
