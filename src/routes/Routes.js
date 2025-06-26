@@ -41,18 +41,23 @@ const router = express.Router();
 router.post("/verify-token", verifyFirebaseToken); // Endpoint baru untuk verifikasi token Firebase
 
 // ============================== USER ROUTES =======================
-router.post("/signup", signup); // Untuk backward compatibility
-router.post("/login", login); // Untuk backward compatibility
-router.post("/logout", authenticateToken, logout);
 router.get("/me-profile", authenticateToken, getUserProfile);
 router.put("/me-profile", authenticateToken, updateUserProfile);         // Route untuk update profile pribadi
-router.post("/update-profile-picture", authenticateToken, upload.single('image'), updateProfilePicture); // Route untuk update foto profil
-router.post("/change-password", authenticateToken, changePassword);      // Route untuk change password
-router.post("/request-password-reset", requestPasswordReset);
-router.post("/reset-password", resetPassword);
+router.post("/update-profile-picture", authenticateToken, upload.single('image'), updateProfilePicture); 
+router.post("/logout", authenticateToken, logout);
+// Route untuk update foto profil
 router.get("/user/:userId", authenticateToken, getUserById);                 // Route untuk get profile user lain
 // router.get("/users", authenticateToken, getUsers);                          // Route untuk get all users (admin only)
 router.get("/search-users", authenticateToken, searchUsers);                // Route untuk search users
+
+
+router.post("/signup", signup); // Untuk backward compatibility
+router.post("/login", login); // Untuk backward compatibility
+
+router.post("/change-password", authenticateToken, changePassword);      // Route untuk change password
+router.post("/request-password-reset", requestPasswordReset);
+router.post("/reset-password", resetPassword);
+
 
 // =================== Product routes ===================
 router.get("/products", getAllProducts);                           // Route untuk get all products

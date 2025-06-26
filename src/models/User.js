@@ -9,7 +9,7 @@ class User {
     username,
     address = "",
     phone_number = "",
-    role = "user",
+    role = "buyer",
     access_token = null,
     reset_password_token = null, //
     reset_password_expires = null, // 

@@ -11,8 +11,8 @@ dotenv.config();
  */
 export const authenticateToken = async (req, res, next) => {
   try {
-    const authHeader = req.headers['Authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Format: Bearer TOKEN
+    const authHeader = req.headers['Authorization'] || req.headers['authorization'];
+    const token = authHeader.split(' ')[1]; // Format: Bearer TOKEN
     
     if (!token) {
       return errorResponse(res, 401, 'Access token required', 

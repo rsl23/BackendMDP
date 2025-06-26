@@ -103,7 +103,7 @@ export const getMyTransactions = async (req, res) => {
     }
 
     const user_email = user.email;
-    const { role } = req.query; // Optional: 'buyer', 'seller', or 'both' (default)
+    const { role } = user.role; // Optional: 'buyer', 'seller', or 'both' (default)
     const filterRole = role && ['buyer', 'seller', 'both'].includes(role) ? role : 'both';
 
     console.log("Getting transactions for user:", user_id, "email:", user_email, "role:", filterRole);
