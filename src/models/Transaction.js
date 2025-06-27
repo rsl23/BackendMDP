@@ -12,7 +12,17 @@ class Transaction {
     datetime,
     payment_id,
     payment_status,
-    payment_description
+    payment_description,
+
+    // === Tambahan Midtrans ===
+    midtrans_order_id,
+    snap_token,
+    redirect_url,
+    payment_type,
+    va_number,
+    pdf_url,
+    settlement_time,
+    expiry_time
   }) {
     this.transaction_id = transaction_id;
     this.user_seller = user_seller; // seller user object/id
@@ -22,6 +32,16 @@ class Transaction {
     this.payment_id = payment_id;
     this.payment_status = payment_status || "pending";
     this.payment_description = payment_description;
+
+    // === Midtrans
+    this.midtrans_order_id = midtrans_order_id;
+    this.snap_token = snap_token;
+    this.redirect_url = redirect_url;
+    this.payment_type = payment_type;
+    this.va_number = va_number;
+    this.pdf_url = pdf_url;
+    this.settlement_time = settlement_time;
+    this.expiry_time = expiry_time;
   }
 
   static get transactionRef() {
@@ -65,7 +85,8 @@ class Transaction {
     try {
       // Generate transaction ID
       const transactionCount = (await Transaction.fetchAll()).length;
-      const transaction_id = `TR${(transactionCount + 1).toString().padStart(3, "0")}`;
+      // const transaction_id = `TR${(transactionCount + 1).toString().padStart(3, "0")}`;
+      const transaction_id = `TR${uuidv4().split('-')[0].toUpperCase()}`; // Use UUID for unique transaction ID
       
       // Generate payment ID
       const payment_id = `PAY${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
@@ -292,6 +313,35 @@ class Transaction {
       throw new Error("Failed to update payment ID: " + error.message);
     }
   }
+
+  //untuk midtrans
+  static async updateMidtransData(transaction_id, midtransData) {
+  try {
+    const docRef = Transaction.transactionRef.doc(transaction_id);
+
+    const updateFields = {
+      midtrans_order_id: midtransData.order_id,
+      snap_token: midtransData.token,
+      redirect_url: midtransData.redirect_url,
+      payment_type: midtransData.payment_type,
+      va_number: midtransData.va_numbers?.[0]?.va_number || null,
+      pdf_url: midtransData.pdf_url || null,
+      expiry_time: midtransData.expiry_time || null
+    };
+
+    await docRef.update(updateFields);
+
+    const updatedDoc = await docRef.get();
+    return {
+      transaction_id: updatedDoc.id,
+      ...updatedDoc.data()
+    };
+  } catch (error) {
+    console.error("Error updating Midtrans data:", error);
+    throw new Error("Failed to update Midtrans data: " + error.message);
+  }
+}
+
 }
 
 export default Transaction;

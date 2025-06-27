@@ -3,6 +3,8 @@ import Product from "../models/Product.js";
 import User from "../models/User.js";
 import { successResponse, errorResponse } from "../utils/responseUtil.js";
 import { createTransactionSchema, updateTransactionStatusSchema } from "../utils/validation/transactionSchema.js";
+import midtransClient from 'midtrans-client';
+import snap from "../config/midtransClient.js";
 
 // POST /create-transaction - Create new transaction (requires authentication)
 export const createTransaction = async (req, res) => {
@@ -78,9 +80,48 @@ export const createTransaction = async (req, res) => {
     };
 
     const newTransaction = await Transaction.createTransaction(transactionData);
-    return successResponse(res, 201, "Transaction created successfully", {
-      transaction: newTransaction
+    await Product.softDelete(product.product_id);
+    
+    //untuk midtrans
+      const parameter = {
+    transaction_details: {
+      order_id: `TX-${newTransaction.id}-${Date.now()}`, // pastikan unik
+      gross_amount: total_price,
+    },
+    customer_details: {
+      email: buyer_email,
+    },
+    item_details: [
+      {
+        id: product.product_id,
+        price: product.price,
+        quantity: quantity,
+        name: product.name,
+        category: "Secondhand"
+      }
+    ]
+  };
+
+  try {
+    const midtransToken = await snap.createTransaction(parameter);
+    
+    //untuk update midtrans data
+    await Transaction.updateMidtransData(newTransaction.transaction_id, {
+      ...midtransToken,
+      order_id: parameter.transaction_details.order_id
     });
+    
+    return successResponse(res, 201, "Transaction created successfully", {
+      transaction: newTransaction,
+      snap_token: midtransToken.token,
+      redirect_url: midtransToken.redirect_url
+    });
+  } catch (e) {
+    return errorResponse(res, 500, "Midtrans token generation failed", e.message);
+  }
+    // return successResponse(res, 201, "Transaction created successfully", {
+    //   transaction: newTransaction
+    // });
   } catch (error) {
     console.error("Error creating transaction:", error);
     return errorResponse(res, 500, "Failed to create transaction", error.message);
@@ -268,5 +309,50 @@ export const updateTransactionStatus = async (req, res) => {
   } catch (error) {
     console.error("Error updating transaction status:", error);
     return errorResponse(res, 500, "Failed to update transaction status", error.message);
+  }
+};
+
+
+//untuk midtrans
+export const handleMidtransWebhook = async (req, res) => {
+  const notification = req.body;
+
+  try {
+    const {
+      transaction_status,
+      payment_type,
+      order_id,
+      va_numbers,
+      pdf_url,
+      expiry_time
+    } = notification;
+
+    console.log("Midtrans Webhook Received:", notification);
+
+    // Ambil transaction_id dari order_id
+    // Format order_id kita: `TX-${transaction_id}-${timestamp}`
+    const transaction_id = order_id.split("-")[1]; // hasil: TR550E8400
+
+    // Siapkan data untuk update di Firestore
+    const updateData = {
+      payment_status: transaction_status,
+      payment_type: payment_type || null,
+      midtrans_order_id: order_id,
+      va_number: va_numbers?.[0]?.va_number || null,
+      pdf_url: pdf_url || null,
+      expiry_time: expiry_time || null
+    };
+
+    // Update di Firestore
+    const updatedTransaction = await Transaction.updateStatus(transaction_id, transaction_status);
+    await Transaction.updateMidtransData(transaction_id, updateData);
+
+    return res.status(200).json({
+      message: "Webhook received and transaction updated.",
+      transaction: updatedTransaction
+    });
+  } catch (error) {
+    console.error("Webhook error:", error);
+    return res.status(500).json({ message: "Webhook handling failed", error: error.message });
   }
 };

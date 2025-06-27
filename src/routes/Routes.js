@@ -28,7 +28,8 @@ import {
   createTransaction, 
   getMyTransactions, 
   getTransactionById, 
-  updateTransactionStatus 
+  updateTransactionStatus,
+  handleMidtransWebhook
 } from "../controllers/transactionController.js";
 
 import ChatController from "../controllers/chatController.js";
@@ -72,6 +73,7 @@ router.post("/create-transaction", authenticateToken, createTransaction);
 router.get("/my-transactions", authenticateToken, getMyTransactions);
 router.get("/transaction/:id", authenticateToken, getTransactionById);
 router.put("/transaction/:id/status", authenticateToken, updateTransactionStatus);
+router.post("/midtrans-webhook", handleMidtransWebhook); // Endpoint untuk menerima webhook dari Midtrans
 
 // =================== Chat routes ===================
 router.post("/chat", authenticateToken, ChatController.startChat);
