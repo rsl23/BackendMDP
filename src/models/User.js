@@ -54,7 +54,8 @@ class User {
     try {
       const snapshot = await User.usersRef.get();
       const count = snapshot.size + 1;
-      newUser.id = `US${String(count).padStart(3, "0")}`;
+      newUser.id = uuidv4(); // Generate unique ID using UUID
+      // newUser.id = `US${String(count).padStart(3, "0")}`; // Jika ingin format ID seperti US001, US002, dst
     } catch (error) {
       console.error("Error generating new user ID:", error);
       throw error;
