@@ -323,7 +323,7 @@ class Transaction {
       midtrans_order_id: midtransData.order_id,
       snap_token: midtransData.token,
       redirect_url: midtransData.redirect_url,
-      payment_type: midtransData.payment_type,
+      payment_type: midtransData.payment_type? midtransData.payment_type : null,
       va_number: midtransData.va_numbers?.[0]?.va_number || null,
       pdf_url: midtransData.pdf_url || null,
       expiry_time: midtransData.expiry_time || null

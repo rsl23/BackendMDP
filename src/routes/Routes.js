@@ -35,6 +35,7 @@ import {
 import ChatController from "../controllers/chatController.js";
 // import { verifyFirebaseToken } from "../controllers/authController.js";
 import { authenticateToken } from "../middleware/auth.js";
+import { getMidtransStatus } from "../controllers/transactionController.js";
 
 const router = express.Router();
 
@@ -81,5 +82,25 @@ router.get("/chat/conversations", authenticateToken, ChatController.getUserConve
 router.get("/chat/conversation/:user_id", authenticateToken, ChatController.getConversation);
 router.put("/chat/:chat_id/status", authenticateToken, ChatController.updateMessageStatus);
 router.delete("/chat/:chat_id", authenticateToken, ChatController.deleteMessage);
+
+router.get('/midtrans/status/:orderId', async (req, res) => {
+  const { orderId } = req.params;
+
+  try {
+    const status = await getMidtransStatus(orderId);
+    return res.status(200).json({
+      status: 200,
+      message: 'Transaction status retrieved successfully',
+      data: status
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: 500,
+      message: 'Failed to retrieve transaction status',
+      error: error.response?.data || error.message
+    });
+  }
+});
+
 
 export default router;

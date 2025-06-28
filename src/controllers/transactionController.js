@@ -6,6 +6,29 @@ import { createTransactionSchema, updateTransactionStatusSchema } from "../utils
 import midtransClient from 'midtrans-client';
 import snap from "../config/midtransClient.js";
 
+
+import axios from 'axios';
+import base64 from 'base-64';
+
+const serverKey = process.env.MIDTRANS_SERVER_KEY; // Ganti dengan server key Anda
+const encodedKey = base64.encode(serverKey + ':');
+
+export async function getMidtransStatus(orderId) {
+  try {
+    const res = await axios.get(`https://api.sandbox.midtrans.com/v2/${orderId}/status`, {
+      headers: {
+        Authorization: `Basic ${encodedKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return res.data;
+  } catch (err) {
+    console.error('Error fetching transaction status:', err.response?.data || err.message);
+    throw err;
+  }
+}
+
+
 // POST /create-transaction - Create new transaction (requires authentication)
 export const createTransaction = async (req, res) => {
   const buyer_id = req.user?.id;
@@ -81,11 +104,12 @@ export const createTransaction = async (req, res) => {
 
     const newTransaction = await Transaction.createTransaction(transactionData);
     await Product.softDelete(product.product_id);
+    console.log("New transaction created:", newTransaction.transaction_id);
     
     //untuk midtrans
     const parameter = {
       transaction_details: {
-        order_id: `TX-${newTransaction.id}-${Date.now()}`, // pastikan unik
+        order_id: newTransaction.transaction_id, // pastikan unik
         gross_amount: total_price,
       },
       customer_details: {
@@ -101,16 +125,26 @@ export const createTransaction = async (req, res) => {
         }
       ]
     };
+    console.log("Midtrans transaction parameters:", parameter);
+    
 
   try {
     const midtransToken = await snap.createTransaction(parameter);
-    
+    console.log("Midtrans response:", midtransToken);
+    console.log(parameter.transaction_details.order_id);
+
     //untuk update midtrans data
+    // await Transaction.updateMidtransData(newTransaction.transaction_id, {
+    //   ...midtransToken,
+    //   order_id: parameter.transaction_details.order_id
+    // });
+    
     await Transaction.updateMidtransData(newTransaction.transaction_id, {
-      ...midtransToken,
+      token: midtransToken.token,
+      redirect_url: midtransToken.redirect_url,
       order_id: parameter.transaction_details.order_id
     });
-    
+
     return successResponse(res, 201, "Transaction created successfully", {
       transaction: newTransaction,
       snap_token: midtransToken.token,
