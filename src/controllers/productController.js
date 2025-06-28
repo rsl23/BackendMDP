@@ -1,49 +1,80 @@
 import Product from "../models/Product.js";
 import User from "../models/User.js";
 import { successResponse, errorResponse } from "../utils/responseUtil.js";
-import { productSchema, productupdateSchema} from "../utils/validation/productSchema.js"
+import { productSchema, productupdateSchema } from "../utils/validation/productSchema.js";
 import fs from 'fs';
 import path from 'path';
 import supabase from '../config/supabase.js';
+
+// --- START: FIX for __dirname in ES Modules (ESSENTIAL for Multer's path handling) ---
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// --- END: FIX for __dirname in ES Modules ---
 
 export const addProduct = async (req, res) => {
   try {
     // Get user ID from JWT token
     const userId = req.user.id;
-    
+    console.log(`[addProduct] User authenticated: ${req.user.email} (${userId})`); // Added log
+
     // Validate user exists
     const user = await User.findById(userId);
     if (!user) {
+      console.log(`[addProduct] User not found for ID: ${userId}`); // Added log
       return errorResponse(res, 404, "User not found");
     }
 
     // Validate request data
     const { error, value } = productSchema.validate(req.body);
     if (error) {
-      return errorResponse(res, 400, "Validation error", { 
-        error: error.details[0].message 
+      console.error("[addProduct] Validation error:", error.details[0].message); // Added log
+      return errorResponse(res, 400, "Validation error", {
+        error: error.details[0].message
       });
     }
 
     let imageUrl = null;
     if (req.file) {
-      const filePath = path.resolve(req.file.path);
-      const fileBuffer = fs.readFileSync(filePath);
-      const fileName = `product/${Date.now()}_${req.file.originalname}`;
+      // FIX: Use the path provided directly by Multer.
+      // Multer's diskStorage, once correctly configured with path.resolve(__dirname, ...)
+      // will provide an absolute and valid path here.
+      const filePath = req.file.path;
+      const originalname = req.file.originalname; // Use original name for Supabase
+
+      console.log(`[addProduct] Attempting to upload file from local path: ${filePath}`); // Added log
+      console.log(`[addProduct] Original filename: ${originalname}, Mimetype: ${req.file.mimetype}`); // Added log
+
+      const fileBuffer = fs.readFileSync(filePath); // This line should now work correctly
+      const fileName = `product/${Date.now()}_${originalname}`;
 
       const { data, error: uploadError } = await supabase.storage
-        .from('images') 
+        .from('images')
         .upload(fileName, fileBuffer, {
           contentType: req.file.mimetype,
         });
 
-      fs.unlinkSync(filePath); // Hapus file lokal
+      // FIX: Use asynchronous fs.unlink for non-blocking file deletion
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.warn(`[addProduct] Failed to delete local temp file ${filePath}:`, err);
+        } else {
+          console.log(`[addProduct] Successfully deleted local temp file: ${filePath}`);
+        }
+      });
 
       if (uploadError) {
+        console.error("[addProduct] Supabase Upload Error:", uploadError.message); // Added log
         return errorResponse(res, 500, 'Upload gambar gagal', { error: uploadError.message });
       }
 
       imageUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/images/${fileName}`;
+      console.log("[addProduct] Image successfully uploaded to Supabase:", imageUrl); // Added log
+    } else {
+      console.log("[addProduct] No image file provided in the request."); // Added log for clarity
+      // You might add an error here if an image is mandatory for a product
+      // return errorResponse(res, 400, "Image is required for product.");
     }
 
     // Prepare product data with user ID
@@ -53,21 +84,24 @@ export const addProduct = async (req, res) => {
       image: imageUrl
     };
 
-    console.log("Creating product with data:", productData);
-    
+    console.log("[addProduct] Creating product in database with data:", productData); // Added log
+
     // Create product in database
     const newProduct = await Product.create(productData);
-    
+
+    console.log("[addProduct] Product created successfully:", newProduct.id); // Added log
     return successResponse(res, 201, "Product added successfully", {
       product: newProduct
     });
   } catch (err) {
-    console.error("Error adding product:", err);
+    console.error("[addProduct] Error adding product:", err); // Specific log for addProduct
     return errorResponse(res, 500, "Failed to add product", {
       error: err.message
     });
   }
 };
+
+// --- START: Original code (NOT CHANGED) ---
 
 export const findProductById = async (req, res) => {
   const { product_id } = req.params;
