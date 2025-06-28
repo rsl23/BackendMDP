@@ -83,24 +83,24 @@ export const createTransaction = async (req, res) => {
     await Product.softDelete(product.product_id);
     
     //untuk midtrans
-      const parameter = {
-    transaction_details: {
-      order_id: `TX-${newTransaction.id}-${Date.now()}`, // pastikan unik
-      gross_amount: total_price,
-    },
-    customer_details: {
-      email: buyer_email,
-    },
-    item_details: [
-      {
-        id: product.product_id,
-        price: product.price,
-        quantity: quantity,
-        name: product.name,
-        category: "Secondhand"
-      }
-    ]
-  };
+    const parameter = {
+      transaction_details: {
+        order_id: `TX-${newTransaction.id}-${Date.now()}`, // pastikan unik
+        gross_amount: total_price,
+      },
+      customer_details: {
+        email: buyer_email,
+      },
+      item_details: [
+        {
+          id: product.product_id,
+          price: product.price,
+          quantity: quantity,
+          name: product.name,
+          category: "Secondhand"
+        }
+      ]
+    };
 
   try {
     const midtransToken = await snap.createTransaction(parameter);
