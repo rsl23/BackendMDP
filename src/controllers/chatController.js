@@ -68,7 +68,7 @@ class ChatController {
               ...conversation,
               otherUser: otherUser ? {
                 id: otherUser.id,
-                name: otherUser.name,
+                name: otherUser.username,
                 email: otherUser.email,
                 profile_picture: otherUser.profile_picture || null,
               } : null,
