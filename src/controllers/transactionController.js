@@ -103,9 +103,28 @@ export const createTransaction = async (req, res) => {
     };
 
     const newTransaction = await Transaction.createTransaction(transactionData);
+    const productInfo = {
+      product_id: product.product_id, // tambahkan ini
+      name: product.name,
+      price: product.price,
+      description: product.description,
+      category: product.category,
+      image_url: product.image, // sesuaikan nama jika perlu
+    };
     await Product.softDelete(product.product_id);
     console.log("New transaction created:", newTransaction.transaction_id);
-    
+    const fullTransactionResponse = {
+  ...newTransaction,
+  product: productInfo,
+  user_seller: {
+    id: seller.id,
+    email: seller.email,
+    name: seller.username,
+    profile_picture: seller.profile_picture,
+    phone: seller.phone_number
+  }
+};
+
     //untuk midtrans
     const parameter = {
       transaction_details: {
@@ -146,7 +165,7 @@ export const createTransaction = async (req, res) => {
     });
 
     return successResponse(res, 201, "Transaction created successfully", {
-      transaction: newTransaction,
+      transaction: fullTransactionResponse,
       snap_token: midtransToken.token,
       redirect_url: midtransToken.redirect_url
     });
