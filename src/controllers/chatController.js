@@ -34,7 +34,8 @@ class ChatController {
         status: "sent",
       };
 
-      const newChat = await Chat.create(chatData);      return successResponse(res, 201, "Chat started successfully", {
+      const newChat = await Chat.create(chatData);      
+      return successResponse(res, 201, "Chat started successfully", {
         chat_id: newChat.id,
         sender_id: newChat.user_sender,
         receiver_id: newChat.user_receiver,
@@ -42,6 +43,7 @@ class ChatController {
         datetime: newChat.datetime,
         status: newChat.status
       });
+      
     } catch (error) {
       console.error("Error starting chat:", error);
       return errorResponse(res, 500, "Internal server error", {
@@ -53,7 +55,7 @@ class ChatController {
   // GET /chat/conversations - Get all conversations for current user
   static async getUserConversations(req, res) {
     try {
-      const userId = req.user.uid; // From auth middleware
+      const userId = req.user.id; // From auth middleware
 
       const conversations = await Chat.getUserConversations(userId);
 
@@ -94,7 +96,7 @@ class ChatController {
   static async getConversation(req, res) {
     try {
       const { user_id } = req.params;
-      const currentUserId = req.user.uid; // From auth middleware
+      const currentUserId = req.user.id; // From auth middleware
         // Validate query parameters
       const { error, value } = chatPaginationSchema.validate(req.query);
       if (error) {
@@ -137,7 +139,7 @@ class ChatController {
   static async updateMessageStatus(req, res) {
     try {
       const { chat_id } = req.params;
-      const userId = req.user.uid; // From auth middleware
+      const userId = req.user.id; // From auth middleware
 
       // Validate request body
       const { error, value } = updateMessageStatusSchema.validate(req.body);
@@ -183,7 +185,7 @@ class ChatController {
   static async deleteMessage(req, res) {
     try {
       const { chat_id } = req.params;
-      const userId = req.user.uid; // From auth middleware
+      const userId = req.user.id; // From auth middleware
 
       // Check if chat exists
       const chat = await Chat.findById(chat_id);      if (!chat) {

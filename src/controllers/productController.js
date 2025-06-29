@@ -228,7 +228,7 @@ export const updateProduct = async (req, res) => {
 
 export const deleteProduct = async (req, res) => {
   const { product_id } = req.params;
-  const userId = req.user.userId;
+  const userId = req.user.id;
 
   if (!product_id) {
     return errorResponse(res, 400, "Product ID is required.");
