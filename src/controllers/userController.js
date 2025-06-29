@@ -449,3 +449,34 @@ export const changePassword = async (req, res) => {
   }
 };
 
+export const getUserByFirebaseUid = async (req, res) => {
+  try {
+    const { firebase_uid } = req.params;
+    
+    // Validasi firebase_uid
+    if (!firebase_uid || firebase_uid.trim() === '') {
+      return errorResponse(res, 400, 'Firebase UID is required', 
+        'Firebase UID parameter is missing or empty');
+    }
+
+    // Cari user berdasarkan Firebase UID
+    const user = await User.findByFirebaseUid(firebase_uid);
+    
+    if (!user) {
+      return errorResponse(res, 404, 'User not found', 
+        `No user found with Firebase UID: ${firebase_uid}`);
+    }
+
+    // Return public profile (jangan expose sensitive data)
+    const publicProfile = user.toPublicProfile();
+    
+    return successResponse(res, 200, 'User found successfully', {
+      publicProfile
+    });
+
+  } catch (error) {
+    console.error('Error in getUserByFirebaseUid:', error);
+    return errorResponse(res, 500, 'Internal server error', 
+      'An error occurred while fetching user data');
+  }
+};

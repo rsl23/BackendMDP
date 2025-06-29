@@ -10,7 +10,8 @@ import {
   changePassword,
   requestPasswordReset,
   resetPassword,
-  getUserById,           
+  getUserById,
+  getUserByFirebaseUid,
   // getUsers,              
   searchUsers            
 } from "../controllers/userController.js";
@@ -51,6 +52,7 @@ router.post("/logout", authenticateToken, logout);
 router.get("/user/:userId", authenticateToken, getUserById);                 // Route untuk get profile user lain
 // router.get("/users", authenticateToken, getUsers);                          // Route untuk get all users (admin only)
 router.get("/search-users", authenticateToken, searchUsers);                // Route untuk search users
+router.get("/user/firebase/:firebase_uid", authenticateToken, getUserByFirebaseUid);
 
 
 router.post("/signup", signup); // Untuk backward compatibility
