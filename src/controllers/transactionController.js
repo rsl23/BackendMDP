@@ -277,7 +277,10 @@ export const getTransactionById = async (req, res) => {
 
     // Determine user role
     const user_role = transaction.email_buyer === user_email ? 'buyer' : 'seller';
-
+    if (transaction.product && transaction.product.id) {
+      transaction.product.product_id = transaction.product.id;
+      delete transaction.product.id;
+    }
     // Transaction already contains all necessary data (user_seller, email_buyer, product)
     const enrichedTransaction = {
       ...transaction,
