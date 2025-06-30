@@ -278,9 +278,17 @@ class Transaction {
       
       // Return updated transaction
       const updatedDoc = await docRef.get();
+      const data = updatedDoc.data();
+
+// Ubah struktur product.id → product.product_id
+      if (data.product && data.product.id) {
+        data.product.product_id = data.product.id;
+        delete data.product.id;
+      }
+
       return {
         transaction_id: updatedDoc.id,
-        ...updatedDoc.data()
+        ...data
       };
     } catch (error) {
       console.error("Error updating transaction status:", error);

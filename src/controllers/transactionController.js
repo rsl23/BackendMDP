@@ -298,6 +298,8 @@ export const updateTransactionStatus = async (req, res) => {
   const user_id = req.user?.id;
   const { id } = req.params;
 
+  console.log("Updating transaction", req.params.id);
+console.log("Body received:", req.body);
   if (!user_id) {
     return errorResponse(res, 401, "Unauthorized access. Please login first.");
   }
@@ -351,23 +353,23 @@ export const updateTransactionStatus = async (req, res) => {
     console.log("User role determined as:", userRole);
 
     // Business logic for status updates
-    if (userRole === 'buyer') {
-      // Buyers can only cancel pending transactions
-      if (payment_status !== 'cancelled') {
-        return errorResponse(res, 403, "Buyers can only cancel transactions.");
-      }
-      if (transaction.payment_status !== 'pending') {
-        return errorResponse(res, 400, "Only pending transactions can be cancelled.");
-      }
-    } else if (userRole === 'seller') {
-      // Sellers can mark as completed or refunded
-      if (!['completed', 'refunded'].includes(payment_status)) {
-        return errorResponse(res, 403, "Sellers can only mark transactions as completed or refunded.");
-      }
-      if (payment_status === 'completed' && transaction.payment_status !== 'pending') {
-        return errorResponse(res, 400, "Only pending transactions can be marked as completed.");
-      }
-    }
+    // if (userRole === 'buyer') {
+    //   // Buyers can only cancel pending transactions
+    //   if (payment_status !== 'cancelled') {
+    //     return errorResponse(res, 403, "Buyers can only cancel transactions.");
+    //   }
+    //   if (transaction.payment_status !== 'pending') {
+    //     return errorResponse(res, 400, "Only pending transactions can be cancelled.");
+    //   }
+    // } else if (userRole === 'seller') {
+    //   // Sellers can mark as completed or refunded
+    //   if (!['completed', 'refunded'].includes(payment_status)) {
+    //     return errorResponse(res, 403, "Sellers can only mark transactions as completed or refunded.");
+    //   }
+    //   if (payment_status === 'completed' && transaction.payment_status !== 'pending') {
+    //     return errorResponse(res, 400, "Only pending transactions can be marked as completed.");
+    //   }
+    // }
 
     // Update with optional description
     const { payment_description } = req.body;
