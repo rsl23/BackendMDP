@@ -203,7 +203,24 @@ export const getMyTransactions = async (req, res) => {
     console.log("Getting transactions for user:", user_id, "email:", user_email, "role:", filterRole);
 
     // Use the new model method with user_id and user_email
-    const transactions = await Transaction.findByUser(user_id, user_email, filterRole);
+    const transactionsRaw = await Transaction.findByUser(user_id, user_email, filterRole);
+
+// Mapping product.id => product.product_id
+    const transactions = transactionsRaw.map((trx) => {
+      // Pastikan product ada
+      if (trx.product) {
+        const { id, ...restProduct } = trx.product;
+        return {
+          ...trx,
+          product: {
+            ...restProduct,
+            product_id: id,
+          },
+        };
+      }
+      return trx;
+    });
+
 
     // Transactions are already enriched with product and user data from the model
     return successResponse(res, 200, "Transactions retrieved successfully", {
