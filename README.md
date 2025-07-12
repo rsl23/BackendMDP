@@ -5,12 +5,6 @@ Comprehensive backend authentication system untuk aplikasi Android menggunakan N
 ## 🚀 Features
 
 ### ✅ Authentication & Authorization
-- [x] **User Registration/Signup** dengan validasi email dan password yang ketat
-- [x] **User Login** dengan JWT token-based authentication
-- [x] **User Logout** dengan token invalidation server-side
-- [x] **Google Authentication** menggunakan Firebase Admin SDK
-- [x] **Password Reset via Email** dengan crypto tokens dan expiry time
-- [x] **Change Password** untuk authenticated users
 - [x] **JWT Middleware** untuk route protection
 - [x] **Role-based Access Control** (user/admin roles)
 
