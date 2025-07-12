@@ -41,11 +41,7 @@ Comprehensive backend authentication system untuk aplikasi Android menggunakan N
 
 ### Authentication Routes
 ```
-POST   /signup                    - User registration
-POST   /login                     - User login
-POST   /logout                    - User logout (requires auth)
-POST   /request-password-reset    - Request password reset via email
-POST   /reset-password           - Reset password with token
+
 ```
 
 ### Profile Management Routes
